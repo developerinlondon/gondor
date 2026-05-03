@@ -1,0 +1,46 @@
+/* Gondor brand overrides.
+ *
+ * Loaded last in hostops's layout.html so anything in here wins over
+ * tokens.css + styles.css. Edit only the tokens that should differ
+ * from upstream; everything else (fg tiers, semantic state colors,
+ * radii) inherits.
+ */
+
+:root {
+  /* FCAR green (#407040) — sampled from the logo's dominant chroma.
+   * Drives every accent surface consistently across the dashboard:
+   *   - sidebar active bar              (.nav a.active inset shadow)
+   *   - in-page tab active underline    (.tab.active inset shadow)
+   *   - chip / button active state      (.chip.active, .btn-primary)
+   *   - input focus rings               (.input:focus border)
+   *   - table-cell + main content links
+   *   - pill-info backgrounds
+   *   - .brand-mark background
+   * Chrome ramp inherits upstream's neutral cool-grey defaults; the
+   * accent does the work. Same value for both themes so the brand
+   * reads consistently whether operators flip to light mode or not. */
+  --info: #407040;
+}
+
+:root[data-theme="light"] {
+  --info: #407040;
+}
+
+/* Brand mark — replace hostops's CSS-drawn diamond with the FCAR
+ * logo. The pseudo-elements that drew the inner cutout + outer border
+ * are display:none'd so only the bg image shows. */
+.brand-mark {
+  width: 24px;
+  height: 24px;
+  background: url("/static/img/favicon.svg") center/contain no-repeat;
+  transform: none;
+}
+.brand-mark::before,
+.brand-mark::after {
+  display: none;
+}
+.brand-name {
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
