@@ -1,0 +1,45 @@
+[Unit]
+Description=gondor · FCAR host-ops dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gondor
+Group=gondor
+
+EnvironmentFile=/etc/gondor/env
+
+ExecStart=/usr/local/bin/assay run /etc/gondor/scripts/main.lua
+
+Environment=RUST_LOG=assay=info,assay_engine=info
+
+# Whitelabel the engine's bundled /workflow/, /auth/, /vault/ admin SPAs
+# so the cross-console branding stays consistent. These envs are read by
+# the engine sidecar (separate systemd unit), but defining them here
+# documents the contract; mirror them in the engine unit.
+Environment=ASSAY_WHITELABEL_NAME=Gondor
+Environment=ASSAY_WHITELABEL_MARK=G
+Environment=ASSAY_WHITELABEL_SUBTITLE=FCAR · Host operations
+Environment=ASSAY_WHITELABEL_PAGE_TITLE=Gondor
+
+Restart=on-failure
+RestartSec=5
+
+# Sandboxing — gondor needs to read /etc/gondor and write /var/lib/gondor;
+# lock everything else down.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+ReadWritePaths=/var/lib/gondor
+
+[Install]
+WantedBy=multi-user.target
