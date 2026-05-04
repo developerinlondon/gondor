@@ -1,73 +1,40 @@
+<div class="skip-trace-page">
+
 <header class="page-header">
   <div>
     <div class="page-eyebrow">FCAR · skip trace</div>
-    <h1 class="page-title">{{ page_title }}</h1>
+    <h1 class="page-title">Skip trace</h1>
   </div>
-  {% if result %}
-  <div class="page-meta">
-    <span><span class="k">subject</span><span class="v">{{ result.subject }}</span></span>
-    <span><span class="k">traced</span><span class="v">{{ result.traced_at }}</span></span>
-    {% if workflow_id %}<span><span class="k">workflow</span><span class="v">{{ workflow_id }}</span></span>{% endif %}
+  <div class="page-actions" style="display:flex;gap:8px">
+    <button class="btn btn-primary" hx-get="/api/skip-trace/new"
+            hx-target="#workflow-dialog" hx-swap="innerHTML">+ New skip-trace</button>
+    {% if engine_base_url %}
+    <a class="btn btn-outline" href="{{ engine_base_url }}/workflow/?type=fcar.skip-trace"
+       target="_blank" rel="noopener">Open in engine ↗</a>
+    {% endif %}
   </div>
-  {% endif %}
 </header>
 
-<div class="card"><div class="card-body">
-  <form method="get" action="/skip-trace" class="filter-bar" style="gap:12px;flex-wrap:wrap;align-items:flex-end">
-    <label style="display:flex;flex-direction:column;gap:4px;flex:2;min-width:220px">
-      <span class="muted" style="font-size:11px">Subject name</span>
-      <input class="input" name="name" type="text" placeholder="John Smith" value="{{ query.name | default('') }}" required autofocus />
-    </label>
-    <label style="display:flex;flex-direction:column;gap:4px;width:140px">
-      <span class="muted" style="font-size:11px">State</span>
-      <select class="input" name="state">
-        {% for code, label in [['OH','Ohio'],['PA','Pennsylvania'],['NY','New York'],['FL','Florida'],['TX','Texas'],['CA','California']] %}
-        <option value="{{ code }}" {% if query.state == code %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px">
-      <span class="muted" style="font-size:11px">Case # (optional)</span>
-      <input class="input" name="case_number" type="text" placeholder="2024-CV-12345" value="{{ query.case_number | default('') }}" />
-    </label>
-    <button type="submit" class="chip active">Run trace</button>
-    {% if query.name %}<a class="chip" href="/skip-trace">Reset</a>{% endif %}
-  </form>
-</div></div>
+<!-- Modal slot — populated by /api/skip-trace/new on click. -->
+<div id="workflow-dialog"></div>
 
-{% if result %}
-<div class="card" style="margin-top:16px"><div class="card-body">
-  <h3 style="margin:0 0 14px 0;font-size:14px">
-    Probable record for <strong>{{ result.subject }}</strong>
-    <span class="muted" style="font-weight:400;font-size:12px"> · {{ result.state }}</span>
-  </h3>
-  <table class="table">
-    <tbody>
-      <tr><td class="name-cell">probable address</td><td>{{ result.address }}</td></tr>
-      <tr><td class="name-cell">phone</td><td>{{ result.phone }}</td></tr>
-      <tr><td class="name-cell">email</td><td>{{ result.email }}</td></tr>
-      {% if result.case_number %}<tr><td class="name-cell">linked case</td><td class="muted">{{ result.case_number }}</td></tr>{% endif %}
-      <tr><td class="name-cell">confidence</td><td>
-        {% set pct = (result.confidence * 100) | round | int %}
-        {% if result.confidence >= 0.85 %}<span class="pill pill-ok">{{ pct }}%</span>
-        {% elif result.confidence >= 0.70 %}<span class="pill pill-info">{{ pct }}%</span>
-        {% else %}<span class="pill pill-warn">{{ pct }}%</span>{% endif %}
-      </td></tr>
-    </tbody>
-  </table>
-  <p class="muted" style="font-size:11px;margin:14px 0 6px 0">Sources consulted ({{ result.sources | length }}):</p>
-  <ul style="font-size:12px;color:var(--fg-2);margin:0;padding-left:20px;line-height:1.7">
-    {% for s in result.sources %}<li>{{ s }}</li>{% endfor %}
-  </ul>
-</div></div>
-{% else %}
-<div class="card" style="margin-top:16px"><div class="card-body">
-  <p class="muted" style="font-size:13px;margin:0">
-    Enter a subject name and state to run a skip trace. This demo uses
-    deterministic mock data — same inputs always return the same probable
-    address, phone, email, and confidence score. Production hits county
-    auditor records, voter rolls, USPS NCOA, phone directories, and
-    bankruptcy filings (when a case # is supplied).
-  </p>
-</div></div>
-{% endif %}
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">Runs</h2>
+    <div class="section-tools">
+      <input class="input runs-filter" type="search"
+             placeholder="Filter runs… (status, subject, case#, requested by)"
+             oninput="filterPipelineRuns(this.value)" />
+    </div>
+  </div>
+  <div id="skip-trace-runs-slot"
+       hx-get="/api/skip-trace/runs"
+       hx-trigger="dashboard-refresh from:body, every 30s">
+    {{ runs_html | safe }}
+  </div>
+</section>
+
+</div><!-- /.skip-trace-page -->
+
+<link rel="stylesheet" href="/static/css/pipeline.css" />
+<script src="/static/app.js"></script>

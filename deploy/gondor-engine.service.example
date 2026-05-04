@@ -1,0 +1,61 @@
+[Unit]
+Description=gondor-engine (assay-engine sidecar branded for gondor)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gondor
+Group=gondor
+
+# Shared admin token between gondor and its engine sidecar. Same env
+# file is loaded by gondor.service and gondor-skip-trace-worker.service
+# so all three see the same GONDOR_ADMIN_API_KEYS value. Generate via
+# `openssl rand -hex 32`; rotate manually + restart all three units.
+EnvironmentFile=/etc/gondor/env
+
+ExecStart=/usr/local/bin/assay-engine serve --config /etc/gondor-engine/engine.toml
+
+# Whitelabel: the engine bundles /workflow/, /auth/, /vault/ admin SPAs;
+# these envs make them appear as gondor brand. Mirror the values used
+# by gondor.service so the cross-console branding stays consistent.
+Environment=ASSAY_WHITELABEL_NAME=Gondor
+Environment=ASSAY_WHITELABEL_MARK=G
+Environment=ASSAY_WHITELABEL_SUBTITLE=FCAR · Host operations
+Environment=ASSAY_WHITELABEL_PAGE_TITLE=Gondor · engine
+Environment=ASSAY_WHITELABEL_PARENT_URL=https://gondor.agenteda.com
+Environment=ASSAY_WHITELABEL_PARENT_NAME=Gondor
+
+# Pin the SPA to dark — hostops is dark-only, so the engine should
+# match. Engine's pre-paint script reads this env-derived value and
+# sets <html data-theme="dark"> before any CSS evaluates.
+Environment=ASSAY_WHITELABEL_DEFAULT_THEME=dark
+
+# Brand-pack CSS overrides — gondor serves /brand/engine.css derived
+# from brand.json, the engine loads it after its own stylesheets so
+# accent + token vars get overridden cleanly.
+Environment=ASSAY_WHITELABEL_CSS_URL=https://gondor.agenteda.com/brand/engine.css
+Environment=ASSAY_WHITELABEL_FAVICON_URL=https://gondor.agenteda.com/static/favicon.svg
+
+Environment=RUST_LOG=assay_engine=info,assay_workflow=info
+
+Restart=on-failure
+RestartSec=2
+
+# Sandboxing — engine needs to read /etc/gondor-engine and write its
+# sqlite data dir; lock everything else down.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+ReadWritePaths=/var/lib/gondor-engine
+
+[Install]
+WantedBy=multi-user.target

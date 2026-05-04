@@ -1,7 +1,7 @@
 [Unit]
 Description=gondor · FCAR host-ops dashboard
-After=network-online.target
-Wants=network-online.target
+After=network-online.target gondor-engine.service
+Wants=network-online.target gondor-engine.service
 
 [Service]
 Type=simple

@@ -16,9 +16,10 @@ gondor/
 │   └── img/favicon.svg
 ├── deploy/
 │   ├── env.example                   # secrets (admin keys, GITHUB_TOKEN)
-│   ├── gondor.service.example        # systemd unit (User=gondor, sandboxed)
-│   └── gondor-skip-trace-worker.service.example
-├── pages/skip_trace.lua              # GET /skip-trace handler
+│   ├── engine.toml.example           # assay-engine sidecar config
+│   ├── gondor-engine.service.example # systemd unit for the engine sidecar
+│   └── gondor.service.example        # systemd unit (User=gondor, sandboxed)
+├── pages/skip_trace.lua              # /skip-trace runs page + HTMX fragments
 ├── services/
 │   ├── audit.lua                     # flat-file audit log
 │   ├── brand.lua                     # brand-pack reader
@@ -26,11 +27,24 @@ gondor/
 │   ├── jobs.lua                      # in-memory job tracker
 │   ├── secret_store.lua              # secrets accessor (engine vault → rustic → file)
 │   ├── state.lua                     # host + container snapshot
-│   └── tracer.lua                    # deterministic mock skip-trace
-├── templates/skip_trace.html
+│   ├── tracer.lua                    # deterministic mock skip-trace
+│   └── workflows/                    # workflow client + worker + handlers
+│       ├── engine.lua                #   single integration boundary
+│       ├── client.lua                #   list_active / list_recent / start
+│       ├── steps.lua                 #   pipeline_state schema helper
+│       ├── history.lua               #   recent-runs in-memory cache
+│       ├── registry.lua              #   worker entrypoint (listens on queue)
+│       └── definitions/skip_trace.lua  # fcar.skip-trace handler + activities
+├── templates/
+│   ├── skip_trace.html               # page shell (active + recent sections)
+│   ├── skip_trace_active.html        # active-runs cards (HTMX fragment)
+│   ├── skip_trace_runs.html          # recent-runs table (HTMX fragment)
+│   └── skip_trace_new.html           # new-run modal (HTMX fragment)
+├── static/
+│   ├── app.js                        # SSE bridge + modal helpers
+│   └── css/pipeline.css              # pipeline / step-ladder / runs-table CSS
 ├── scripts/
-│   ├── main.lua                      # composition entry point
-│   └── skip_trace_worker.lua         # registers fcar.skip-trace on the engine
+│   └── main.lua                      # composition entry point + embedded worker
 ├── tests-lua/
 │   ├── smoke.test.lua                # boots scripts/main.lua + curls routes
 │   └── dev-run.sh                    # convenience launcher for local dev
@@ -94,15 +108,19 @@ sudo -u gondor bash -c '
   /usr/local/bin/assay install --manifest Manifest.lua
 '
 
-# 5) Install the engine sidecar (separate unit, ships with assay-engine).
-#    See https://github.com/developerinlondon/assay docs for the engine
-#    deployment story. Set ENGINE_URL in /etc/gondor/env to its bind addr.
+# 5) Install the engine sidecar — separate process, branded for gondor,
+#    bound to 127.0.0.1:8082, sqlite-backed at /var/lib/gondor-engine.
+#    Front it with cloudflared/Traefik as gondor-engine.agenteda.com.
+sudo mkdir -p /etc/gondor-engine /var/lib/gondor-engine
+sudo chown -R gondor:gondor /etc/gondor-engine /var/lib/gondor-engine
+sudo cp deploy/engine.toml.example /etc/gondor-engine/engine.toml
 
-# 6) Drop the gondor systemd units + start
+# 6) Drop the gondor systemd units + start. gondor.service has
+#    After=gondor-engine.service so ordering is automatic.
+sudo cp deploy/gondor-engine.service.example /etc/systemd/system/gondor-engine.service
 sudo cp deploy/gondor.service.example /etc/systemd/system/gondor.service
-sudo cp deploy/gondor-skip-trace-worker.service.example /etc/systemd/system/gondor-skip-trace-worker.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now gondor gondor-skip-trace-worker
+sudo systemctl enable --now gondor-engine gondor
 ```
 
 ## Customizing the brand
@@ -121,20 +139,29 @@ redeclaring any of them in `brand.css` overrides the default.
 
 ## The skip-trace workflow
 
-`pages/skip_trace.lua` runs the deterministic mock in `services/tracer.lua`
-inline (synchronous; sub-millisecond) and posts a workflow record to the
-engine sidecar with the result baked into the input. The engine's
-`/workflow/` SPA shows it as PENDING.
+`/skip-trace` is a runs page: an "In progress" section above a paginated
+"Recent runs" table, both rendered server-side from the engine's
+`pipeline_state` snapshot. Click `+ New skip-trace` to open a modal,
+submit, and watch the run advance through Validate → Lookup → Score →
+Persist → Notify with a live step ladder + log. Same shape as
+gitops/knowhere's promotion dashboard.
 
-`scripts/skip_trace_worker.lua` runs as a separate systemd unit. It claims
-PENDING runs from the default queue and promotes them to COMPLETED, copying
-the input fields into the result. Future iteration: move the mock into the
-worker so the page handler enqueues with operator input only.
+The handler lives in `services/workflows/definitions/skip_trace.lua`. It
+calls `services/tracer.lua` (the deterministic mock) as activities and
+registers `pipeline_state` so both gondor's runs table AND the engine
+SPA's `/workflow/<id>` Steps tab render the same data.
+
+The worker is spawned as a coroutine inside `scripts/main.lua` via
+`async.spawn(workflow_registry.start, cfg)` — same process as the
+dashboard, no separate systemd unit. Adding a new workflow type is one
+file: `services/workflows/definitions/<type>.lua` (handler + activities
+
+- `meta`) and a sidebar entry in `extra_sidebar_links`.
 
 ## Bumping the hostops version
 
 ```bash
 # Update the pin in Manifest.lua, then on each host:
 cd /etc/gondor && sudo -u gondor /usr/local/bin/assay install --manifest Manifest.lua
-sudo systemctl restart gondor gondor-skip-trace-worker
+sudo systemctl restart gondor
 ```
