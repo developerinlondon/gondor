@@ -1,0 +1,909 @@
+/* Gondor token aliases — pipeline.css was authored against gitops's
+ * --color-* vocabulary; hostops uses --bg-N / --fg-N / --info / --ok /
+ * --err. Mapping the names here keeps the rest of this file usable
+ * verbatim, so future syncs from gitops are a straight diff.
+ */
+:root {
+  --color-bg:             var(--bg-0);
+  --color-surface:        var(--bg-1);
+  --color-muted-bg:       var(--bg-2);
+  --color-border:         var(--line);
+  --color-border-light:   var(--line-soft);
+  --color-text:           var(--fg-0);
+  --color-text-secondary: var(--fg-1);
+  --color-text-muted:     var(--fg-2);
+  --color-primary:        var(--info);
+  --color-primary-bg:     color-mix(in srgb, var(--info) 14%, transparent);
+  --color-success:        var(--ok);
+  --color-success-bg:     color-mix(in srgb, var(--ok) 14%, transparent);
+  --color-danger:         var(--err);
+  --color-danger-bg:      color-mix(in srgb, var(--err) 14%, transparent);
+  --font-mono:            ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
+  --radius:               var(--r-md);
+  --radius-sm:            var(--r-sm);
+  --shadow-sm:            0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Release Cards ── */
+.release-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.release-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.release-tag {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.release-images {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.release-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ── Pipeline ── */
+.pipeline {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Pipeline tab bar — [Pipeline] [Log (N)]. Sits at the top of the
+   active-pipeline card so the step-strip + log are behind tabs
+   rather than both always-visible, mirroring assay's detail-panel
+   Pipeline/Log/Events layout. Same styling vocabulary as the
+   existing dashboard tabs (underline-on-active, muted otherwise). */
+.pipeline-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+  margin: -4px -4px 16px;
+  padding: 0 4px;
+}
+.pipeline-tab {
+  background: transparent;
+  border: none;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.pipeline-tab:hover {
+  color: var(--color-text);
+  background: var(--color-muted-bg);
+}
+.pipeline-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+.pipeline-tab-panel { display: none; }
+.pipeline-tab-panel.active { display: block; }
+
+.pipeline-steps {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  /* overflow-x: auto promotes overflow-y to auto per CSS spec, which
+     clips the scale(1.1) + 3px box-shadow ring on the selected step
+     indicator. Give vertical headroom and pin overflow-y: visible so
+     the selection ring (top + bottom ~6px) renders in full. */
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 6px 0;
+}
+
+.pipeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 80px;
+}
+
+.step-indicator {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.step-indicator:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+/* Selected step (user clicked to filter log to this step). Keeps the
+ * scale + ring but swaps primary-tint for a stronger primary border
+ * so the user can tell at a glance which step is "filtered" and which
+ * are sibling states. Dimming non-selected siblings reinforces focus. */
+.pipeline-step.step-selected .step-indicator {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px var(--color-primary);
+}
+
+.pipeline-steps:has(.step-selected) .pipeline-step:not(.step-selected) {
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
+
+.pipeline-steps:has(.step-selected) .pipeline-connector {
+  opacity: 0.45;
+}
+
+.step-done .step-indicator {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.step-running .step-indicator {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+.step-failed .step-indicator {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+.step-waiting .step-indicator {
+  background: var(--color-muted-bg);
+  color: var(--color-text-muted);
+}
+
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+
+.step-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-align: center;
+  white-space: nowrap;
+}
+.step-duration {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  margin-top: -2px;
+}
+
+/* Inline kick affordance that appears on a running pipeline step
+   once util.enrich_pipeline_steps flags it as stuck (running for
+   longer than STUCK_AFTER_SEC). Sized smaller than the apps-table
+   icon-btn so it sits neatly under step-name without stretching
+   the step column. Reuses the .icon-btn base styles from apps.css
+   for hover/active/result-tint behaviour — this rule only tweaks
+   the dimensions and spacing. */
+.step-kick-btn {
+  width: 22px;
+  height: 22px;
+  margin-top: 4px;
+}
+.step-kick-btn svg { width: 12px; height: 12px; }
+
+.pipeline-connector {
+  height: 2px;
+  flex: 1;
+  min-width: 20px;
+  margin: 0 4px;
+  margin-bottom: 26px;
+}
+
+.pipeline-connector.step-done {
+  background: var(--color-success);
+}
+.pipeline-connector.step-running {
+  background: linear-gradient(
+    to right,
+    var(--color-success),
+    var(--color-primary)
+  );
+}
+.pipeline-connector.step-waiting {
+  background: var(--color-border);
+}
+
+.step-cancelled .step-indicator {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+}
+.pipeline-connector.step-cancelled {
+  background: var(--color-border);
+}
+
+/* Env card link (inside card, grows to push actions to bottom) */
+.env-card-link,
+.env-card-link:hover,
+.env-card-link:visited {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  flex: 1;
+}
+.env-card-actions .btn {
+  flex: 1;
+  text-align: center;
+}
+
+/* Promote confirmation dialog */
+.promote-dialog {
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.promote-dialog-header h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.promote-diff-table {
+  margin: 16px 0;
+}
+.promote-diff-table td:nth-child(3) {
+  text-align: center;
+  color: var(--color-text-muted);
+}
+.version-new {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.promote-dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.promote-error {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+}
+
+.pipeline-log {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.log-entry {
+  color: var(--color-text-secondary);
+}
+.log-time {
+  color: var(--color-text-muted);
+  margin-right: 8px;
+}
+
+/* Promote version input field */
+.promote-version-field {
+  margin: 12px 0;
+}
+.promote-version-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+.input-field {
+  width: 100%;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-bg);
+}
+
+/* Dashboard tabs wrapper (no longer a separate sidebar — tabs are in the main sidebar) */
+
+/* Error detail — selectable, copyable */
+.error-detail {
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin: 12px 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-danger);
+  white-space: pre-wrap;
+  word-break: break-all;
+  cursor: text;
+  user-select: text;
+}
+
+/* Pipeline hero — accent border when pipeline is actively running */
+.pipeline-hero {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary), 0 2px 8px rgba(0, 153, 153, 0.1);
+}
+.step-running .step-indicator {
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+/* Step detail panel (filtered log per step) */
+.pipeline-step-detail {
+  margin-top: 8px;
+}
+
+.pipeline-step-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  background: var(--color-primary-bg);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.pipeline-step-detail-header strong {
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Compact step ladder — used in the recent-runs table where each row
+ * gets its own mini-ladder. Ported from gitops's modal.css + approval.css
+ * (which include these rules alongside their drift/release-note styles).
+ * gitops's pipeline.css doesn't carry them; ours does so we don't have
+ * to fan out into multiple stylesheets.
+ * ───────────────────────────────────────────────────────────────── */
+.pipeline-steps-compact {
+  gap: 4px;
+}
+.pipeline-steps-compact .pipeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 64px;
+}
+.pipeline-steps-compact .step-indicator {
+  width: 24px;
+  height: 24px;
+  cursor: default;
+}
+.pipeline-steps-compact .step-indicator:hover {
+  transform: none;
+  box-shadow: none;
+}
+.pipeline-steps-compact .step-indicator svg {
+  width: 12px;
+  height: 12px;
+}
+.pipeline-steps-compact .step-name {
+  font-size: 10px;
+}
+.pipeline-steps-compact .pipeline-connector {
+  margin-bottom: 18px;
+}
+
+.step-name-compact {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.1;
+  max-width: 72px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Recent-runs row affordance — hover indicates row is clickable
+ * (toggles the inline expanded detail row). */
+.pipeline-history-row {
+  cursor: pointer;
+}
+.pipeline-history-row:hover td {
+  background: var(--color-muted-bg);
+}
+.pipeline-history-detail > td {
+  background: var(--color-bg);
+  padding: 10px 14px;
+}
+
+/* Pagination strip beneath the runs table. */
+.pipeline-runs-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding: 8px 4px;
+  font-size: 13px;
+}
+.pipeline-runs-pagination .pagination-info {
+  color: var(--color-text-secondary);
+}
+.pipeline-runs-pagination .pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pipeline-runs-pagination .pagination-controls label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.pipeline-runs-pagination .pagination-controls select {
+  margin-left: 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  background: var(--color-surface);
+}
+.pipeline-runs-pagination .pagination-page {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Gondor visual polish — adopts hostops's existing token palette
+ * (--ok / --err / --info / --fg-N / --bg-N) so /skip-trace reads as
+ * part of the same product, not a transplant from gitops.
+ *
+ * Scope: only rules under #skip-trace-runs-fragment + #skip-trace-active-fragment
+ * so the generic engine SPA at /workflow/ keeps its own styling.
+ * ───────────────────────────────────────────────────────────────── */
+
+/* Status pill — small, monospace, dot-with-glow indicator. Matches
+ * hostops's `.pill` system; gondor-table cells already wrap a
+ * `<span class="badge badge-success|badge-danger|badge-muted">` so we
+ * style those classes directly. */
+#skip-trace-runs-fragment .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+}
+#skip-trace-runs-fragment .badge::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+#skip-trace-runs-fragment .badge-success {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  border-color: color-mix(in srgb, var(--ok) 22%, transparent);
+}
+#skip-trace-runs-fragment .badge-success::before {
+  background: var(--ok);
+  box-shadow: 0 0 6px var(--ok);
+}
+#skip-trace-runs-fragment .badge-danger {
+  color: var(--err);
+  background: color-mix(in srgb, var(--err) 12%, transparent);
+  border-color: color-mix(in srgb, var(--err) 22%, transparent);
+}
+#skip-trace-runs-fragment .badge-danger::before { background: var(--err); }
+#skip-trace-runs-fragment .badge-muted {
+  color: var(--fg-2);
+  background: color-mix(in srgb, var(--fg-2) 10%, transparent);
+  border-color: color-mix(in srgb, var(--fg-2) 18%, transparent);
+}
+#skip-trace-runs-fragment .badge-muted::before { background: var(--fg-3); }
+
+/* Subject cell — typography hierarchy. Primary name normal-weight on
+ * the top line, "by <user>" demoted to a small muted second line. The
+ * `.history-author` class is the meta line gondor's template emits. */
+#skip-trace-runs-fragment td:nth-child(2) {
+  line-height: 1.45;
+}
+#skip-trace-runs-fragment .history-author {
+  font-size: 11px;
+  color: var(--fg-2);
+  font-style: italic;
+}
+
+/* Case# column — monospace + neutral chip. */
+#skip-trace-runs-fragment .version-code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--fg-1);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+}
+
+/* Compact step circles — subtle glow on done, brand-coloured ring. */
+#skip-trace-runs-fragment .pipeline-steps-compact .step-indicator {
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+#skip-trace-runs-fragment .step-done .step-indicator {
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+}
+#skip-trace-runs-fragment .step-failed .step-indicator,
+#skip-trace-runs-fragment .step-cancelled .step-indicator {
+  border-color: color-mix(in srgb, var(--err) 35%, transparent);
+}
+#skip-trace-runs-fragment .step-running .step-indicator {
+  border-color: color-mix(in srgb, var(--info) 50%, transparent);
+  animation: pulse-ring 1.4s ease-in-out infinite;
+}
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--info) 30%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--info)  0%, transparent); }
+}
+
+/* Compact step name — slightly larger than gitops's 10px, and use
+ * fg-1 instead of fg-2 so it reads at a glance even when the row is
+ * at lower contrast than the header. */
+#skip-trace-runs-fragment .step-name-compact {
+  font-size: 11px;
+  color: var(--fg-1);
+  font-weight: 500;
+}
+
+/* Connectors — subtle gradient that flows green for done, fades for
+ * running, neutral for waiting. */
+#skip-trace-runs-fragment .pipeline-connector {
+  height: 2px;
+  border-radius: 1px;
+}
+#skip-trace-runs-fragment .pipeline-connector.step-done {
+  background: linear-gradient(to right, var(--ok), color-mix(in srgb, var(--ok) 70%, transparent));
+}
+
+/* Recent-runs row — left-border accent on hover, subtle row spacing,
+ * cleaner separator. */
+#skip-trace-runs-fragment table.table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+#skip-trace-runs-fragment table.table thead th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--fg-2);
+  font-weight: 500;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+#skip-trace-runs-fragment table.table tbody td {
+  padding: 14px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+}
+#skip-trace-runs-fragment .pipeline-history-row {
+  cursor: pointer;
+  transition: background 120ms;
+}
+#skip-trace-runs-fragment .pipeline-history-row:hover td {
+  background: color-mix(in srgb, var(--info) 6%, transparent);
+}
+#skip-trace-runs-fragment .pipeline-history-row:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--info);
+}
+#skip-trace-runs-fragment .pipeline-history-detail > td {
+  background: var(--bg-0);
+  padding: 18px 24px;
+  border-left: 3px solid var(--info);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Section header — eyebrow + bigger title, mirroring gondor's
+ * .page-eyebrow / .page-title pattern but for inner sections. */
+.skip-trace-page .section {
+  margin-top: 28px;
+}
+.skip-trace-page .section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.skip-trace-page .section-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--fg-0);
+  margin: 0;
+}
+
+/* Pagination — cleaner button group + subtle separator. */
+#skip-trace-runs-fragment .pipeline-runs-pagination {
+  margin-top: 16px;
+  padding: 12px 4px 4px;
+  border-top: 1px solid var(--line-soft);
+}
+#skip-trace-runs-fragment .pagination-controls .btn {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: var(--r-sm);
+}
+#skip-trace-runs-fragment .pagination-page {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--fg-2);
+}
+
+/* Active-run hero card — frame with brand accent on the left edge so
+ * "in progress" surfaces visually before the table. */
+#skip-trace-active-fragment .pipeline.pipeline-hero {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--info);
+  border-radius: var(--r-md);
+  padding: 18px 22px;
+  margin-bottom: 14px;
+}
+#skip-trace-active-fragment .pipeline-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+#skip-trace-active-fragment .pipeline-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+#skip-trace-active-fragment .pipeline-header .meta {
+  font-size: 11px;
+  color: var(--fg-2);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ── Runs table — filter input + sortable headers ──────────────── */
+.skip-trace-page .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.skip-trace-page .section-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.skip-trace-page .runs-filter {
+  width: 320px;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+#skip-trace-runs-fragment th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 22px;
+}
+#skip-trace-runs-fragment th.sortable::after {
+  content: '↕';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.35;
+  font-size: 10px;
+}
+#skip-trace-runs-fragment th.sortable:hover::after { opacity: 0.7; }
+#skip-trace-runs-fragment th.sort-asc::after  { content: '▲'; opacity: 1; color: var(--info); }
+#skip-trace-runs-fragment th.sort-desc::after { content: '▼'; opacity: 1; color: var(--info); }
+
+/* Filter-hidden — applied by JS, separate from runtime display:none
+ * the expanded-row toggle uses, so we don't fight that handler. */
+#skip-trace-runs-fragment tr.filter-hidden { display: none !important; }
+
+#skip-trace-runs-fragment .actor-cell {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--fg-1);
+}
+
+/* ── Apex-style progress + duration + link cells ─────────────── */
+#skip-trace-runs-fragment .duration-cell {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--fg-1);
+  white-space: nowrap;
+}
+
+#skip-trace-runs-fragment .progress-cell {
+  min-width: 200px;
+}
+#skip-trace-runs-fragment .progress-text {
+  font-size: 12px;
+  color: var(--fg-1);
+  margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#skip-trace-runs-fragment .progress-bar {
+  height: 4px;
+  background: var(--bg-2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#skip-trace-runs-fragment .progress-bar-fill {
+  height: 100%;
+  background: var(--ok);
+  border-radius: 2px;
+  transition: width 0.25s ease;
+}
+#skip-trace-runs-fragment .progress-bar-fill[data-status="failed"]    { background: var(--err); }
+#skip-trace-runs-fragment .progress-bar-fill[data-status="cancelled"] { background: var(--fg-3); }
+#skip-trace-runs-fragment .progress-bar-fill[data-status="running"]   { background: var(--info); }
+
+#skip-trace-runs-fragment th.link-col,
+#skip-trace-runs-fragment td.link-cell {
+  text-align: right;
+  width: 48px;
+}
+#skip-trace-runs-fragment .run-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  color: var(--fg-2);
+  transition: background 120ms, color 120ms;
+}
+#skip-trace-runs-fragment .run-link:hover {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+}
+
+/* ── Modal (new-skip-trace) ──────────────────────────────────────
+ * hostops doesn't ship modal classes; these scope to gondor's
+ * #workflow-dialog slot. Tokens come from hostops's palette so the
+ * card reads as part of the same product. */
+#workflow-dialog .modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+#workflow-dialog .modal-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  width: min(480px, 100%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+}
+#workflow-dialog .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+#workflow-dialog .modal-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg-0);
+  letter-spacing: 0.2px;
+}
+#workflow-dialog .modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--fg-2);
+}
+#workflow-dialog .modal-close:hover {
+  color: var(--fg-0);
+  background: var(--bg-2);
+}
+#workflow-dialog .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+}
+#workflow-dialog .modal-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+#workflow-dialog .modal-body label > span {
+  font-size: 11px;
+  color: var(--fg-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+#workflow-dialog .modal-body .input {
+  width: 100%;
+  font-size: 13px;
+  padding: 7px 10px;
+  background: var(--bg-2);
+  color: var(--fg-0);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+#workflow-dialog .modal-body .input:focus {
+  outline: none;
+  border-color: var(--info);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--info) 25%, transparent);
+}
+#workflow-dialog .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line-soft);
+  margin-top: 4px;
+  padding-top: 14px;
+}

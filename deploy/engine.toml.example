@@ -1,0 +1,39 @@
+# gondor's engine sidecar — sqlite-backed, auth+vault+workflow.
+# Bound to 127.0.0.1; cloudflared/Traefik exposes it as gondor-engine.agenteda.com.
+#
+# Install path: /etc/gondor-engine/engine.toml
+# Loaded by:    gondor-engine.service (see deploy/gondor-engine.service.example)
+#
+# Per-consumer engine sidecar — see knowhere/.claude/plans/02 for the
+# rationale (whitelabel envs are process-global, so each branded consumer
+# app needs its own engine instance).
+
+auto_enable_modules = ["auth", "vault", "workflow"]
+
+[server]
+bind_addr = "127.0.0.1:8082"
+public_url = "https://gondor-engine.agenteda.com"
+
+[backend]
+type = "sqlite"
+data_dir = "/var/lib/gondor-engine"
+
+[auth]
+audience = ["https://gondor-engine.agenteda.com"]
+# Admin token loaded from /etc/gondor/env via the systemd unit's
+# EnvironmentFile=. Engine expands ${...} references at config-load
+# time (assay-engine/src/config.rs:expand_env_vars). Same env file is
+# loaded by gondor.service so apps can authenticate to the engine
+# without human intervention.
+admin_api_keys = ["${GONDOR_ADMIN_API_KEYS}"]
+
+[auth.passkey]
+rp_id = "gondor-engine.agenteda.com"
+rp_name = "gondor"
+
+[auth.oidc_provider]
+enabled = true
+
+[logging]
+level = "info"
+format = "pretty"

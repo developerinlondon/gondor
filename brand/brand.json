@@ -1,7 +1,8 @@
 {
   "name": "Gondor",
-  "subtitle": "FCAR · host operations",
+  "subtitle": "",
   "title": "Gondor",
   "favicon_url": "/static/img/favicon.svg",
-  "accent_hex": "#407040"
+  "accent_hex": "#407040",
+  "workflows_label": "FCAR workflows"
 }

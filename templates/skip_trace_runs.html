@@ -1,0 +1,150 @@
+<!-- Recent skip-trace runs. Rendered by /api/skip-trace/runs?page=N&per_page=P.
+     Same shape as gitops's pipeline_runs.html — one row per run with a
+     compact step ladder, click-to-expand for log + step durations. -->
+<div id="skip-trace-runs-fragment" class="pipeline-runs-fragment">
+  {% if runs and runs | length > 0 %}
+  <div class="table-wrapper">
+    <table class="table sortable-table">
+      <thead>
+        <tr>
+          <th onclick="sortPipelineRuns(this, 0)" data-sort="text" class="sortable">Status</th>
+          <th onclick="sortPipelineRuns(this, 1)" data-sort="text" class="sortable">Subject</th>
+          <th onclick="sortPipelineRuns(this, 2)" data-sort="text" class="sortable">Case#</th>
+          <th onclick="sortPipelineRuns(this, 3)" data-sort="text" class="sortable">Requested by</th>
+          <th onclick="sortPipelineRuns(this, 4)" data-sort="num" class="sortable">Started</th>
+          <th onclick="sortPipelineRuns(this, 5)" data-sort="num" class="sortable">Duration</th>
+          <th>Progress</th>
+          <th class="link-col">Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in runs %}
+        <tr class="pipeline-history-row"
+            onclick="togglePipelineDetail('run-{{ loop.index0 }}-{{ run.id }}')"
+            role="button" tabindex="0">
+          <td>
+            {% if run.status == "done" %}<span class="badge badge-success">Done</span>
+            {% elif run.status == "failed" %}<span class="badge badge-danger">Failed</span>
+            {% elif run.status == "cancelled" %}<span class="badge badge-muted">Cancelled</span>
+            {% else %}<span class="badge badge-muted">{{ run.status }}</span>{% endif %}
+          </td>
+          <td>{{ run.subject_name | default('?') }} ({{ run.state_code | default('?') }})</td>
+          <td><code class="version-code">{{ run.case_number | default('-') }}</code></td>
+          <td><span class="actor-cell">{{ run.requested_by | default('—') }}</span></td>
+          <td class="meta" data-sort-value="{{ run.created_at | default(0) }}">
+            {{ run.started_ago | default('-') }}
+          </td>
+          <td class="duration-cell" data-sort-value="{{ run.duration_ms | default(0) }}">
+            {{ run.duration_label | default('-') }}
+          </td>
+          <td class="progress-cell">
+            <div class="progress-text">{{ run.progress_label | default('-') }}</div>
+            <div class="progress-bar" role="progressbar"
+                 aria-valuenow="{{ run.progress_pct | default(0) }}"
+                 aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar-fill"
+                   data-status="{{ run.status }}"
+                   style="width: {{ run.progress_pct | default(0) }}%"></div>
+            </div>
+          </td>
+          <td class="link-cell" onclick="event.stopPropagation()">
+            {% if engine_base_url %}
+            <a href="{{ engine_base_url }}/workflow/#ns=main&wf={{ run.id }}"
+               target="_blank" rel="noopener" class="run-link" title="Open in engine">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        <tr id="run-{{ loop.index0 }}-{{ run.id }}" class="pipeline-history-detail"
+            style="display:none">
+          <td colspan="8">
+            <div class="pipeline pipeline-expanded-run" data-run-id="expanded-{{ run.id }}">
+              <div class="pipeline-steps">
+                {% for step in run.steps %}
+                <div class="pipeline-step step-{{ step.status }}"
+                     data-step="{{ loop.index }}"
+                     role="button" tabindex="0"
+                     onclick="toggleRunStepDetail(this, 'expanded-{{ run.id }}')"
+                     title="{{ step.name }}">
+                  <div class="step-indicator step-indicator-sm">
+                    {% if step.status == "done" %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5"><path d="M20 6L9 17l-5-5" /></svg>
+                    {% elif step.status == "failed" or step.status == "cancelled" %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5"><path d="M18 6L6 18" /><path d="M6 6l12 12" /></svg>
+                    {% else %}
+                    <div class="step-dot"></div>
+                    {% endif %}
+                  </div>
+                  <div class="step-name">{{ step.name }}</div>
+                </div>
+                {% if not loop.last %}
+                <div class="pipeline-connector step-{{ step.status }}"></div>
+                {% endif %}
+                {% endfor %}
+              </div>
+              {% if run.log and run.log | length > 0 %}
+              <div class="pipeline-log pipeline-log-main">
+                {% for entry in run.log %}
+                <div class="log-entry" data-step="{{ entry.step }}">
+                  <span class="log-time">{{ entry.time }}</span> {{ entry.msg }}
+                </div>
+                {% endfor %}
+              </div>
+              <!-- Filtered view shown when a step is clicked. JS swaps
+                   in the matching log lines and hides .pipeline-log-main. -->
+              <div class="pipeline-step-detail" style="display:none">
+                <div class="pipeline-log pipeline-step-log"></div>
+              </div>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages > 1 or total > per_page_options | first %}
+  <div class="pipeline-runs-pagination">
+    <div class="pagination-info">Showing {{ page_first }}–{{ page_last }} of {{ total }} runs</div>
+    <div class="pagination-controls">
+      <label>Per page
+        <select hx-get="/api/skip-trace/runs" hx-target="#skip-trace-runs-fragment"
+                hx-swap="outerHTML" hx-include="[name='page']" name="per_page">
+          {% for opt in per_page_options %}
+          <option value="{{ opt }}" {% if per_page == opt %}selected{% endif %}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <input type="hidden" name="page" value="1" />
+      {% if page > 1 %}
+      <button class="btn btn-outline btn-sm"
+              hx-get="/api/skip-trace/runs?page={{ page_prev }}&per_page={{ per_page }}"
+              hx-target="#skip-trace-runs-fragment" hx-swap="outerHTML">← Prev</button>
+      {% else %}
+      <button class="btn btn-outline btn-sm" disabled aria-disabled="true">← Prev</button>
+      {% endif %}
+      <span class="pagination-page">Page {{ page }} / {{ total_pages }}</span>
+      {% if page < total_pages %}
+      <button class="btn btn-outline btn-sm"
+              hx-get="/api/skip-trace/runs?page={{ page_next }}&per_page={{ per_page }}"
+              hx-target="#skip-trace-runs-fragment" hx-swap="outerHTML">Next →</button>
+      {% else %}
+      <button class="btn btn-outline btn-sm" disabled aria-disabled="true">Next →</button>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% else %}
+  <p class="meta">No skip-trace runs recorded yet. Click + New skip-trace to start one.</p>
+  {% endif %}
+</div>

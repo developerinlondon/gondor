@@ -9,11 +9,12 @@ local M = {}
 local BRAND_DIR = env.get("BRAND_DIR") or "./brand"
 
 local DEFAULTS = {
-  name        = "Gondor",
-  subtitle    = "FCAR · host operations",
-  title       = "Gondor",
-  accent_hex  = "#407040",
-  favicon_url = "/static/img/favicon.svg",
+  name             = "Gondor",
+  subtitle         = "FCAR · host operations",
+  title            = "Gondor",
+  accent_hex       = "#407040",
+  favicon_url      = "/static/img/favicon.svg",
+  workflows_label  = "Workflows",
 }
 
 function M.snapshot()

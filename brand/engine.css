@@ -1,0 +1,15 @@
+/* Gondor brand overrides for the engine SPA. Loaded after assay-engine's
+ * own theme.css + style.css via ASSAY_WHITELABEL_CSS_URL. Only token
+ * tweaks here; structural CSS stays upstream so SPA upgrades land
+ * cleanly.
+ *
+ * Same accent the hostops dashboard uses (FCAR green, sampled from the
+ * brand mark) so the cross-console nav reads as one product.
+ */
+:root {
+  --accent: #407040;
+}
+
+:root[data-theme="light"] {
+  --accent: #407040;
+}

@@ -1,0 +1,64 @@
+<!-- Active skip-trace runs. Rendered by /api/skip-trace/active and
+     refreshed via hx-trigger="dashboard-refresh from:body". One card
+     per RUNNING workflow on the engine. -->
+<div id="skip-trace-active-fragment">
+  {% if active and active | length > 0 %}
+  {% for run in active %}
+  <section class="pipeline pipeline-hero" data-run-id="{{ run.id }}">
+    <div class="pipeline-tabs" role="tablist">
+      <button type="button" class="pipeline-tab active" data-tab="pipeline" role="tab"
+              aria-selected="true">Steps</button>
+      <button type="button" class="pipeline-tab" data-tab="log" role="tab"
+              aria-selected="false">
+        Log{% if run.log %} ({{ run.log | length }}){% endif %}
+      </button>
+    </div>
+    <div class="pipeline-tab-panel active" data-tab-panel="pipeline">
+      <header class="pipeline-header">
+        <h3>{{ run.subject_name | default('?') }} ({{ run.state_code | default('?') }})</h3>
+        <span class="meta">case#{{ run.case_number | default('?') }} · {{ run.id }}</span>
+        <span class="badge badge-warning">{{ (run.status or 'running') | upper }}</span>
+      </header>
+      <div class="pipeline-steps">
+        {% for step in run.steps %}
+        <div class="pipeline-step step-{{ step.status }}" title="{{ step.name }}">
+          <div class="step-indicator">
+            {% if step.status == "done" %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5"><path d="M20 6L9 17l-5-5" /></svg>
+            {% elif step.status == "running" %}
+            <div class="spinner"></div>
+            {% elif step.status == "failed" or step.status == "cancelled" %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5"><path d="M18 6L6 18" /><path d="M6 6l12 12" /></svg>
+            {% else %}
+            <div class="step-dot"></div>
+            {% endif %}
+          </div>
+          <div class="step-name">{{ step.name }}</div>
+        </div>
+        {% if not loop.last %}
+        <div class="pipeline-connector step-{{ step.status }}"></div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    <div class="pipeline-tab-panel" data-tab-panel="log" hidden>
+      {% if run.log and run.log | length > 0 %}
+      <div class="pipeline-log">
+        {% for entry in run.log %}
+        <div class="log-entry" data-step="{{ entry.step }}">
+          <span class="log-time">{{ entry.time }}</span> {{ entry.msg }}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="meta" style="padding: 12px 16px;">No log entries yet.</p>
+      {% endif %}
+    </div>
+  </section>
+  {% endfor %}
+  {% else %}
+  <p class="meta">No skip-trace runs in progress.</p>
+  {% endif %}
+</div>
