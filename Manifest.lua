@@ -14,6 +14,11 @@ return {
       name    = "hostops",
       version = "0.1.3",
       sha256  = "0248939c60c9caf374ef5a521c1aca80c421afa00184f9328d60a631e906e969",
+      -- assay install's default URL pattern is `…/v<libver>/assay-lib-<name>-<libver>.tar.gz`,
+      -- but the assay release pipeline publishes lib tarballs INSIDE the bundling assay-lua
+      -- release (`assay-lua-v0.15.9`), not under per-lib tags like `v0.1.3`. Override the URL
+      -- explicitly until the upstream release/install URL conventions converge.
+      source  = "https://github.com/developerinlondon/assay/releases/download/assay-lua-v0.15.9/assay-lib-hostops-0.1.3.tar.gz",
     },
   },
 }
