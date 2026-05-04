@@ -10,6 +10,7 @@
 local hctx   = require("hostops.ctx")
 local render = require("hostops.pages.render")
 
+local brand   = require("services.brand")
 local client  = require("services.workflows.client")
 local history = require("services.workflows.history")
 local def     = require("services.workflows.definitions.skip_trace")
@@ -177,6 +178,7 @@ function M.page(req)
     engine_base_url = engine_base_url,
     active_html     = active_resp.body,
     runs_html       = runs_resp.body,
+    workflows_label = brand.snapshot().workflows_label,
   }
   local ok, content = pcall(template.render_with_loader, template_dir,
                             "skip_trace.html", ctx)
