@@ -10,6 +10,10 @@ return {
   -- ifies sha256, and extracts into the configured lib dir (defaults to
   -- /opt/assay/libs/<name>/). Pass that path back via HOSTOPS_LIB_ROOT.
   libs = {
-    { name = "hostops", version = "0.1.3" },
+    {
+      name    = "hostops",
+      version = "0.1.3",
+      sha256  = "0248939c60c9caf374ef5a521c1aca80c421afa00184f9328d60a631e906e969",
+    },
   },
 }
