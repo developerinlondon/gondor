@@ -7,8 +7,7 @@
  */
 
 :root {
-  /* FCAR green (#407040) — sampled from the logo's dominant chroma.
-   * Drives every accent surface consistently across the dashboard:
+  /* FCAR accent (#966d4f) — warm tan. Drives every accent surface:
    *   - sidebar active bar              (.nav a.active inset shadow)
    *   - in-page tab active underline    (.tab.active inset shadow)
    *   - chip / button active state      (.chip.active, .btn-primary)
@@ -19,11 +18,11 @@
    * Chrome ramp inherits upstream's neutral cool-grey defaults; the
    * accent does the work. Same value for both themes so the brand
    * reads consistently whether operators flip to light mode or not. */
-  --info: #407040;
+  --info: #966d4f;
 }
 
 :root[data-theme="light"] {
-  --info: #407040;
+  --info: #966d4f;
 }
 
 /* Brand mark — replace hostops's CSS-drawn diamond with the FCAR

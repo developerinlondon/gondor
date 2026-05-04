@@ -48,7 +48,7 @@ gondor/
 ├── tests-lua/
 │   ├── smoke.test.lua                # boots scripts/main.lua + curls routes
 │   └── dev-run.sh                    # convenience launcher for local dev
-├── Manifest.lua                      # pins hostops 0.1.2 for `assay install`
+├── Manifest.lua                      # pins hostops 0.1.3 for `assay install`
 └── VERSION                           # gondor's own semver pin
 ```
 
@@ -61,6 +61,21 @@ is the composition root, so plugins are just regular pages/services in the
 repo and get registered directly on the routes table. Hostops's
 `extra_sidebar_links` mount opt covers the sidebar-affordance case without any
 plugin lifecycle.
+
+## Prerequisites
+
+Tested on Ubuntu 24.04. The host needs:
+
+- `git`, `curl`, `ca-certificates`, `rsync` — `sudo apt install`-able.
+- A Rust toolchain (`cargo`) if building `assay` + `assay-engine` from source.
+  `mise` works for the operator account; root install via `rustup` is fine too.
+- `mise` for the `gondor` system user — used by `assay install` to resolve the
+  pinned runtime via `mise install`.
+
+`assay` and `assay-engine` are not on `apt`. Either build from
+[`developerinlondon/assay`](https://github.com/developerinlondon/assay) and
+`install` the binaries to `/usr/local/bin`, or pull them from a tagged release
+once the assay release pipeline produces tarballs.
 
 ## Run locally
 
@@ -97,7 +112,15 @@ sudo cp -r brand pages services templates scripts Manifest.lua /etc/gondor/
 sudo cp deploy/env.example /etc/gondor/env
 sudo chmod 600 /etc/gondor/env
 
-# 3) Fill in secrets (admin API keys, GITHUB_TOKEN)
+# 3) Fill in secrets + per-host config in /etc/gondor/env:
+#      GONDOR_ADMIN_API_KEYS  — shared secret between gondor + the engine sidecar.
+#                                Generate with `openssl rand -hex 32`.
+#      ENGINE_URL             — http://127.0.0.1:8082 for same-host deploys.
+#      ENGINE_BASE_URL        — public hostname behind cloudflared/Traefik
+#                                (https://gondor-engine.<domain>). Drives the
+#                                "Open in engine ↗" links on each workflow page.
+#                                Leave empty if no public engine surface.
+#      GITHUB_TOKEN           — only needed if your skip-trace flows hit github.
 sudoedit /etc/gondor/env
 
 # 4) Install assay + hostops via mise + assay install
@@ -114,14 +137,30 @@ sudo -u gondor bash -c '
 sudo mkdir -p /etc/gondor-engine /var/lib/gondor-engine
 sudo chown -R gondor:gondor /etc/gondor-engine /var/lib/gondor-engine
 sudo cp deploy/engine.toml.example /etc/gondor-engine/engine.toml
+# Edit at minimum: sqlite path (/var/lib/gondor-engine/engine.db),
+# bind address (127.0.0.1:8082), and any per-tenant JWT/secret options.
+sudo -u gondor sudoedit /etc/gondor-engine/engine.toml
 
 # 6) Drop the gondor systemd units + start. gondor.service has
-#    After=gondor-engine.service so ordering is automatic.
+#    After=gondor-engine.service so ordering is automatic. Both units use
+#    EnvironmentFile=/etc/gondor/env so they share GONDOR_ADMIN_API_KEYS.
 sudo cp deploy/gondor-engine.service.example /etc/systemd/system/gondor-engine.service
 sudo cp deploy/gondor.service.example /etc/systemd/system/gondor.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now gondor-engine gondor
+
+# 7) Verify the install. healthz should return 200, the sidebar should
+#    render with the FCAR workflows group + Skip trace child.
+curl -s http://127.0.0.1:18790/healthz                          # → "ok"
+curl -s http://127.0.0.1:18790/skip-trace | grep -q "FCAR" && echo "sidebar OK"
+systemctl status gondor gondor-engine --no-pager
 ```
+
+If the public hostname is fronted by cloudflared/Traefik, the typical mapping
+is `gondor.<domain>` → `127.0.0.1:18790` (the dashboard) and
+`gondor-engine.<domain>` → `127.0.0.1:8082` (the engine SPA). Set
+`ENGINE_BASE_URL=https://gondor-engine.<domain>` in `/etc/gondor/env` so the
+"Open in engine ↗" links on the workflow pages point at the right place.
 
 ## Customizing the brand
 
@@ -136,6 +175,8 @@ redeclaring any of them in `brand.css` overrides the default.
 - `favicon_url` — path served at this URL (relative or absolute).
 - `accent_hex` — overrides `--info` at runtime; redundant with `brand.css`
   but useful for dynamic per-tenant tweaks.
+- `workflows_label` — sidebar group label that wraps the workflow children
+  (default `"Workflows"`; FCAR's brand sets it to `"FCAR workflows"`).
 
 ## The skip-trace workflow
 
