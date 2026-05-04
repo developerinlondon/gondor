@@ -95,7 +95,10 @@ if [[ ! -f /etc/gondor/env ]]; then
 
 GONDOR_ADMIN_API_KEYS=${ADMIN_KEY}
 ENGINE_URL=http://127.0.0.1:8082
-ENGINE_BASE_URL=
+# Public engine subdomain — needs a cloudflared / Traefik route pointing
+# at 127.0.0.1:8082 for the "Open in engine ↗" buttons to actually work.
+# Override via env on first install (see header comment above).
+ENGINE_BASE_URL=${ENGINE_BASE_URL:-https://gondor-engine.fcar.ai}
 HOSTOPS_LIB_ROOT=/opt/assay/libs/hostops
 GONDOR_ROOT=/etc/gondor
 BRAND_DIR=/etc/gondor/brand
