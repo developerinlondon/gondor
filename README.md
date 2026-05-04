@@ -15,10 +15,11 @@ gondor/
 │   ├── brand.css                     # CSS overrides (loaded last by layout.html)
 │   └── img/favicon.svg
 ├── deploy/
-│   ├── env.example                   # secrets (admin keys, GITHUB_TOKEN)
-│   ├── engine.toml.example           # assay-engine sidecar config
-│   ├── gondor-engine.service.example # systemd unit for the engine sidecar
-│   └── gondor.service.example        # systemd unit (User=gondor, sandboxed)
+│   ├── setup.sh                      # idempotent fresh-host bootstrap
+│   ├── env.example                   # /etc/gondor/env template
+│   ├── engine.toml.example           # /etc/gondor-engine/engine.toml template
+│   ├── gondor.service.example        # systemd unit (User=gondor, sandboxed)
+│   └── gondor-engine.service.example # systemd unit for the engine sidecar
 ├── pages/skip_trace.lua              # /skip-trace runs page + HTMX fragments
 ├── services/
 │   ├── audit.lua                     # flat-file audit log
@@ -101,6 +102,28 @@ ASSAY_ROOT=$(realpath ../assay) ./tests-lua/dev-run.sh --smoke
 
 ## Install on a host
 
+The fast path — `deploy/setup.sh` is idempotent and runs every step below in
+one shot:
+
+```bash
+git clone https://github.com/developerinlondon/gondor.git /opt/src/gondor
+cd /opt/src/gondor
+sudo ./deploy/setup.sh
+# Visit http://127.0.0.1:8080/ — front it with cloudflared / Traefik to
+# expose publicly. Edit /etc/gondor/env afterwards to set ENGINE_BASE_URL
+# (the public engine subdomain) and reload: systemctl restart gondor gondor-engine.
+```
+
+The script downloads pinned `assay` + `assay-engine` binaries from GitHub
+release into `/usr/local/bin`, creates the `gondor` system user, lays out
+`/etc/gondor` + `/etc/gondor-engine` + `/var/lib/gondor*`, generates a fresh
+`GONDOR_ADMIN_API_KEYS` secret on first run, runs `assay install` to fetch
+the hostops library, drops the systemd units, and starts both services.
+Pin overrides via env vars: `ASSAY_LUA_VERSION=… ASSAY_ENGINE_VERSION=…
+sudo ./deploy/setup.sh`.
+
+### Manual install (longer path, same result)
+
 ```bash
 # 1) Service account + dirs
 sudo useradd --system --create-home --shell /usr/sbin/nologin gondor
@@ -128,7 +151,7 @@ sudo -u gondor bash -c '
   cd /etc/gondor
   mise install
   set -a; . /etc/gondor/env; set +a
-  /usr/local/bin/assay install --manifest Manifest.lua
+  /usr/local/bin/assay install --manifest Manifest.lua --lib-dir /opt/assay/libs
 '
 
 # 5) Install the engine sidecar — separate process, branded for gondor,
@@ -151,13 +174,13 @@ sudo systemctl enable --now gondor-engine gondor
 
 # 7) Verify the install. healthz should return 200, the sidebar should
 #    render with the FCAR workflows group + Skip trace child.
-curl -s http://127.0.0.1:18790/healthz                          # → "ok"
-curl -s http://127.0.0.1:18790/skip-trace | grep -q "FCAR" && echo "sidebar OK"
+curl -s http://127.0.0.1:8080/healthz                          # → "ok"
+curl -s http://127.0.0.1:8080/skip-trace | grep -q "FCAR" && echo "sidebar OK"
 systemctl status gondor gondor-engine --no-pager
 ```
 
 If the public hostname is fronted by cloudflared/Traefik, the typical mapping
-is `gondor.<domain>` → `127.0.0.1:18790` (the dashboard) and
+is `gondor.<domain>` → `127.0.0.1:8080` (the dashboard) and
 `gondor-engine.<domain>` → `127.0.0.1:8082` (the engine SPA). Set
 `ENGINE_BASE_URL=https://gondor-engine.<domain>` in `/etc/gondor/env` so the
 "Open in engine ↗" links on the workflow pages point at the right place.
