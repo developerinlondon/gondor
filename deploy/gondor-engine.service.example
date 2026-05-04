@@ -23,7 +23,7 @@ Environment=ASSAY_WHITELABEL_NAME=Gondor
 Environment=ASSAY_WHITELABEL_MARK=G
 Environment=ASSAY_WHITELABEL_SUBTITLE=FCAR · Host operations
 Environment=ASSAY_WHITELABEL_PAGE_TITLE=Gondor · engine
-Environment=ASSAY_WHITELABEL_PARENT_URL=https://gondor.agenteda.com
+Environment=ASSAY_WHITELABEL_PARENT_URL=https://gondor.fcar.ai
 Environment=ASSAY_WHITELABEL_PARENT_NAME=Gondor
 
 # Pin the SPA to dark — hostops is dark-only, so the engine should
@@ -34,8 +34,8 @@ Environment=ASSAY_WHITELABEL_DEFAULT_THEME=dark
 # Brand-pack CSS overrides — gondor serves /brand/engine.css derived
 # from brand.json, the engine loads it after its own stylesheets so
 # accent + token vars get overridden cleanly.
-Environment=ASSAY_WHITELABEL_CSS_URL=https://gondor.agenteda.com/brand/engine.css
-Environment=ASSAY_WHITELABEL_FAVICON_URL=https://gondor.agenteda.com/static/favicon.svg
+Environment=ASSAY_WHITELABEL_CSS_URL=https://gondor.fcar.ai/brand/engine.css
+Environment=ASSAY_WHITELABEL_FAVICON_URL=https://gondor.fcar.ai/static/favicon.svg
 
 Environment=RUST_LOG=assay_engine=info,assay_workflow=info
 

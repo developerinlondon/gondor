@@ -1,5 +1,5 @@
 # gondor's engine sidecar — sqlite-backed, auth+vault+workflow.
-# Bound to 127.0.0.1; cloudflared/Traefik exposes it as gondor-engine.agenteda.com.
+# Bound to 127.0.0.1; cloudflared/Traefik exposes it as gondor-engine.fcar.ai.
 #
 # Install path: /etc/gondor-engine/engine.toml
 # Loaded by:    gondor-engine.service (see deploy/gondor-engine.service.example)
@@ -12,14 +12,14 @@ auto_enable_modules = ["auth", "vault", "workflow"]
 
 [server]
 bind_addr = "127.0.0.1:8082"
-public_url = "https://gondor-engine.agenteda.com"
+public_url = "https://gondor-engine.fcar.ai"
 
 [backend]
 type = "sqlite"
 data_dir = "/var/lib/gondor-engine"
 
 [auth]
-audience = ["https://gondor-engine.agenteda.com"]
+audience = ["https://gondor-engine.fcar.ai"]
 # Admin token loaded from /etc/gondor/env via the systemd unit's
 # EnvironmentFile=. Engine expands ${...} references at config-load
 # time (assay-engine/src/config.rs:expand_env_vars). Same env file is
@@ -28,7 +28,7 @@ audience = ["https://gondor-engine.agenteda.com"]
 admin_api_keys = ["${GONDOR_ADMIN_API_KEYS}"]
 
 [auth.passkey]
-rp_id = "gondor-engine.agenteda.com"
+rp_id = "gondor-engine.fcar.ai"
 rp_name = "gondor"
 
 [auth.oidc_provider]

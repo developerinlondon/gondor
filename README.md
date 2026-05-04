@@ -133,7 +133,7 @@ sudo -u gondor bash -c '
 
 # 5) Install the engine sidecar — separate process, branded for gondor,
 #    bound to 127.0.0.1:8082, sqlite-backed at /var/lib/gondor-engine.
-#    Front it with cloudflared/Traefik as gondor-engine.agenteda.com.
+#    Front it with cloudflared/Traefik as gondor-engine.fcar.ai.
 sudo mkdir -p /etc/gondor-engine /var/lib/gondor-engine
 sudo chown -R gondor:gondor /etc/gondor-engine /var/lib/gondor-engine
 sudo cp deploy/engine.toml.example /etc/gondor-engine/engine.toml
