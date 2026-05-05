@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Boot gondor against a local assay + hostops checkout for development.
+# Boot gondor against a local assay + sysops checkout for development.
 # Run from the repo root:
 #
 #   ./tests-lua/dev-run.sh             # binds 18787, talks to no engine
@@ -14,16 +14,16 @@ GONDOR_ROOT="${GONDOR_ROOT:-$(pwd)}"
 PORT="${PORT:-18787}"
 
 ASSAY_BIN="${ASSAY_ROOT}/target/release/assay"
-HOSTOPS_LIB_ROOT="${ASSAY_ROOT}/libs/hostops"
+SYSOPS_LIB_ROOT="${ASSAY_ROOT}/libs/sysops"
 
 if [[ ! -x "$ASSAY_BIN" ]]; then
   echo "assay release binary missing — build with: (cd $ASSAY_ROOT && cargo build --release --bin assay)" >&2
   exit 1
 fi
 
-LUA_PATH="${ASSAY_ROOT}/libs/?.lua;${ASSAY_ROOT}/libs/?/init.lua;${ASSAY_ROOT}/libs/hostops/?.lua;${GONDOR_ROOT}/?.lua;${GONDOR_ROOT}/?/init.lua;;"
+LUA_PATH="${ASSAY_ROOT}/libs/?.lua;${ASSAY_ROOT}/libs/?/init.lua;${ASSAY_ROOT}/libs/sysops/?.lua;${GONDOR_ROOT}/?.lua;${GONDOR_ROOT}/?/init.lua;;"
 
-export HOSTOPS_LIB_ROOT GONDOR_ROOT PORT LUA_PATH
+export SYSOPS_LIB_ROOT GONDOR_ROOT PORT LUA_PATH
 export BRAND_DIR="${BRAND_DIR:-$GONDOR_ROOT/brand}"
 export AUDIT_PATH="${AUDIT_PATH:-/tmp/gondor-dev-audit.log}"
 

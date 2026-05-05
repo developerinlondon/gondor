@@ -1,5 +1,5 @@
 /* Gondor token aliases — pipeline.css was authored against gitops's
- * --color-* vocabulary; hostops uses --bg-N / --fg-N / --info / --ok /
+ * --color-* vocabulary; sysops uses --bg-N / --fg-N / --info / --ok /
  * --err. Mapping the names here keeps the rest of this file usable
  * verbatim, so future syncs from gitops are a straight diff.
  */
@@ -491,7 +491,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────
- * Gondor visual polish — adopts hostops's existing token palette
+ * Gondor visual polish — adopts sysops's existing token palette
  * (--ok / --err / --info / --fg-N / --bg-N) so /skip-trace reads as
  * part of the same product, not a transplant from gitops.
  *
@@ -500,7 +500,7 @@
  * ───────────────────────────────────────────────────────────────── */
 
 /* Status pill — small, monospace, dot-with-glow indicator. Matches
- * hostops's `.pill` system; gondor-table cells already wrap a
+ * sysops's `.pill` system; gondor-table cells already wrap a
  * `<span class="badge badge-success|badge-danger|badge-muted">` so we
  * style those classes directly. */
 #skip-trace-runs-fragment .badge {
@@ -816,8 +816,8 @@
 }
 
 /* ── Modal (new-skip-trace) ──────────────────────────────────────
- * hostops doesn't ship modal classes; these scope to gondor's
- * #workflow-dialog slot. Tokens come from hostops's palette so the
+ * sysops doesn't ship modal classes; these scope to gondor's
+ * #workflow-dialog slot. Tokens come from sysops's palette so the
  * card reads as part of the same product. */
 #workflow-dialog .modal-overlay {
   position: fixed;

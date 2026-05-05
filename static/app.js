@@ -240,7 +240,7 @@
 })();
 
 // Sidebar: collapsible <details data-section> persistence + click mutex
-// for grouped sidebar entries. Mirrors libs/hostops/static/app.js since
+// for grouped sidebar entries. Mirrors libs/sysops/static/app.js since
 // gondor overrides /static/app.js.
 (function () {
   document.querySelectorAll('details[data-section]').forEach(function (el) {

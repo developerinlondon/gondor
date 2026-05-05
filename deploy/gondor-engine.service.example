@@ -26,7 +26,7 @@ Environment=ASSAY_WHITELABEL_PAGE_TITLE=Gondor · engine
 Environment=ASSAY_WHITELABEL_PARENT_URL=https://gondor.agenteda.com
 Environment=ASSAY_WHITELABEL_PARENT_NAME=Gondor
 
-# Pin the SPA to dark — hostops is dark-only, so the engine should
+# Pin the SPA to dark — sysops is dark-only, so the engine should
 # match. Engine's pre-paint script reads this env-derived value and
 # sets <html data-theme="dark"> before any CSS evaluates.
 Environment=ASSAY_WHITELABEL_DEFAULT_THEME=dark
