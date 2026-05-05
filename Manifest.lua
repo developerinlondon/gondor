@@ -10,6 +10,10 @@ return {
   -- ifies sha256, and extracts into the configured lib dir (defaults to
   -- /opt/assay/libs/<name>/). Pass that path back via SYSOPS_LIB_ROOT.
   libs = {
-    { name = "sysops", version = "0.1.3" },
+    {
+      name = "sysops",
+      version = "0.1.3",
+      sha256 = "38cf5a88486d838e659374a2c6fb47f91a7a66014f75a549e3a4c84af248e15c",
+    },
   },
 }
