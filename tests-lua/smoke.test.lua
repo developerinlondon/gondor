@@ -1,15 +1,15 @@
---! gondor smoke test — boots scripts/main.lua against a local hostops
+--! gondor smoke test — boots scripts/main.lua against a local sysops
 --! checkout, curls a representative set of routes, asserts shape +
 --! brand wiring + skip-trace runs UI.
 --!
---! Set HOSTOPS_LIB_ROOT to a hostops checkout (defaults to
---! ../assay/libs/hostops). Run with:
+--! Set SYSOPS_LIB_ROOT to a sysops checkout (defaults to
+--! ../assay/libs/sysops). Run with:
 --!
 --!   LUA_PATH='libs/?.lua;...' assay tests-lua/smoke.test.lua
 --!
 --! See dev-run.sh in this dir for the canonical invocation.
 
-local hostops    = require("hostops.mount")
+local sysops    = require("sysops.mount")
 local state      = require("services.state")
 local audit      = require("services.audit")
 local jobs       = require("services.jobs")
@@ -34,7 +34,7 @@ skip_trace.configure({
 
 local routes = { GET = {}, POST = {} }
 
-hostops.mount(routes, {
+sysops.mount(routes, {
   prefix              = "/",
   state               = state,
   audit               = audit,
@@ -42,7 +42,7 @@ hostops.mount(routes, {
   secret              = secret,
   brand               = brand,
   engine              = engine,
-  lib_root            = env.get("HOSTOPS_LIB_ROOT"),
+  lib_root            = env.get("SYSOPS_LIB_ROOT"),
   backup_profile_dir  = "/tmp/gondor-smoke-no-profile",
   extra_sidebar_links = {
     { href = "/skip-trace", label = "Skip trace", nav_active = "skip_trace" },

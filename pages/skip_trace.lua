@@ -7,8 +7,8 @@
 --!   GET  /api/skip-trace/new        — new-run modal
 --!   POST /skip-trace/run            — start a run, fires dashboard-refresh
 
-local hctx   = require("hostops.ctx")
-local render = require("hostops.pages.render")
+local hctx   = require("sysops.ctx")
+local render = require("sysops.pages.render")
 
 local brand   = require("services.brand")
 local client  = require("services.workflows.client")

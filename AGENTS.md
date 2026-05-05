@@ -2,9 +2,9 @@
 
 ## App boundary
 
-This repo is one consumer application of `assay-hostops`. It holds only
+This repo is one consumer application of `assay-sysops`. It holds only
 application-specific pieces — composition entry point, application pages, brand pack,
-deploy unit. The shared host-ops dashboard surface lives upstream in `assay-hostops`;
+deploy unit. The shared host-ops dashboard surface lives upstream in `assay-sysops`;
 do not duplicate it here.
 
 When writing or modifying code, do not bake operator / customer / company names into

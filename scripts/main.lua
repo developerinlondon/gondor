@@ -1,6 +1,6 @@
 --! gondor · scripts/main.lua
 --!
---! Composition entry point. Boots the hostops library against this
+--! Composition entry point. Boots the sysops library against this
 --! repo's services + brand pack, mounts the host-ops dashboard at the
 --! root, registers gondor-specific pages (skip-trace) on top, and
 --! spawns the workflow worker on a background coroutine.
@@ -10,7 +10,7 @@
 --!
 --! The systemd unit at deploy/gondor.service.example exports the same.
 
-local hostops    = require("hostops.mount")
+local sysops    = require("sysops.mount")
 local state      = require("services.state")
 local audit      = require("services.audit")
 local jobs       = require("services.jobs")
@@ -24,7 +24,7 @@ local workflow_registry = require("services.workflows.registry")
 local skip_trace_def    = require("services.workflows.definitions.skip_trace")
 
 local PORT     = tonumber(env.get("PORT") or "8086")
-local LIB_ROOT = env.get("HOSTOPS_LIB_ROOT") or "/opt/assay/libs/hostops"
+local LIB_ROOT = env.get("SYSOPS_LIB_ROOT") or "/opt/assay/libs/sysops"
 local APP_ROOT = env.get("GONDOR_ROOT") or "."
 
 local engine_base_url = env.get("ENGINE_BASE_URL") or ""
@@ -87,7 +87,7 @@ state.start()
 
 local routes = { GET = {}, POST = {} }
 
-hostops.mount(routes, {
+sysops.mount(routes, {
   prefix              = "/",
   state               = state,
   audit               = audit,
