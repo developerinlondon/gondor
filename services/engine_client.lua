@@ -19,15 +19,34 @@ local function build(base_url, admin_key)
   end
 
   local function call(method, path, body)
-    local opts = { method = method, url = full(path), headers = {} }
+    local url = full(path)
+    local headers = {}
     if admin_key and admin_key ~= "" then
-      opts.headers["Authorization"] = "Bearer " .. admin_key
+      headers["Authorization"] = "Bearer " .. admin_key
     end
+    local encoded_body
     if body ~= nil then
-      opts.headers["Content-Type"] = "application/json"
-      opts.body = (type(body) == "string") and body or json.encode(body)
+      headers["Content-Type"] = "application/json"
+      encoded_body = (type(body) == "string") and body or json.encode(body)
     end
-    local ok, resp = pcall(http.request, opts)
+
+    -- This assay runtime exposes per-verb http.get/post/put/delete but
+    -- no generic http.request; dispatch on method.
+    local opts = { headers = headers }
+    local ok, resp
+    if method == "GET" then
+      ok, resp = pcall(http.get, url, opts)
+    elseif method == "POST" then
+      ok, resp = pcall(http.post, url, encoded_body or "", opts)
+    elseif method == "PUT" then
+      ok, resp = pcall(http.put, url, encoded_body or "", opts)
+    elseif method == "DELETE" then
+      ok, resp = pcall(http.delete, url, opts)
+    else
+      log.warn(("engine %s %s: unsupported method"):format(method, path))
+      return { status = 0, body = nil, error = "unsupported method " .. tostring(method) }
+    end
+
     if not ok then
       log.warn(("engine %s %s failed: %s"):format(method, path, tostring(resp)))
       return { status = 0, body = nil, error = tostring(resp) }
