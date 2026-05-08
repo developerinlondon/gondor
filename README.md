@@ -1,7 +1,7 @@
 # gondor
 
 A host-ops application composed from
-[`assay-hostops`](https://github.com/developerinlondon/assay) (the `libs/hostops`
+[`assay-sysops`](https://github.com/developerinlondon/assay) (the `libs/sysops`
 library shipped alongside the assay binary) with FCAR-specific branding,
 services, and pages. Runs as a Lua app on top of `assay run` with an
 `assay-engine` sidecar for workflow + vault.
@@ -10,7 +10,7 @@ services, and pages. Runs as a Lua app on top of `assay run` with an
 
 ```
 gondor/
-├── brand/                            # whitelabel pack — overrides hostops defaults
+├── brand/                            # whitelabel pack — overrides sysops defaults
 │   ├── brand.json                    # name, subtitle, accent_hex, favicon
 │   ├── brand.css                     # CSS overrides (loaded last by layout.html)
 │   └── img/favicon.svg
@@ -48,7 +48,7 @@ gondor/
 ├── tests-lua/
 │   ├── smoke.test.lua                # boots scripts/main.lua + curls routes
 │   └── dev-run.sh                    # convenience launcher for local dev
-├── Manifest.lua                      # pins hostops 0.1.3 for `assay install`
+├── Manifest.lua                      # pins sysops 0.1.5 for `assay install`
 └── VERSION                           # gondor's own semver pin
 ```
 
@@ -58,7 +58,7 @@ Older fcar/gondor (now archived) discovered features via `plugin.toml` files
 inside `plugins/<name>/`. That layer existed because the old knowhere binary
 couldn't be modified by operators. `gondor` is the binary now — `scripts/main.lua`
 is the composition root, so plugins are just regular pages/services in the
-repo and get registered directly on the routes table. Hostops's
+repo and get registered directly on the routes table. Sysops's
 `extra_sidebar_links` mount opt covers the sidebar-affordance case without any
 plugin lifecycle.
 
@@ -83,7 +83,7 @@ once the assay release pipeline produces tarballs.
 # 1) Build assay locally (one-time)
 cd ../assay && cargo build --release --bin assay
 
-# 2) Boot gondor pointing at the local hostops checkout
+# 2) Boot gondor pointing at the local sysops checkout
 cd ../gondor
 ASSAY_ROOT=$(realpath ../assay) ./tests-lua/dev-run.sh
 
@@ -91,8 +91,8 @@ ASSAY_ROOT=$(realpath ../assay) ./tests-lua/dev-run.sh
 # Visit http://127.0.0.1:18787/ — sidebar should show Skip trace.
 ```
 
-The dev-run script wires `LUA_PATH` so `require("hostops.mount")` resolves
-against the local `libs/hostops/` instead of an installed copy.
+The dev-run script wires `LUA_PATH` so `require("sysops.mount")` resolves
+against the local `libs/sysops/` instead of an installed copy.
 
 ```bash
 # Run the smoke test instead of starting the server:
@@ -123,7 +123,7 @@ sudo chmod 600 /etc/gondor/env
 #      GITHUB_TOKEN           — only needed if your skip-trace flows hit github.
 sudoedit /etc/gondor/env
 
-# 4) Install assay + hostops via mise + assay install
+# 4) Install assay + sysops via mise + assay install
 sudo -u gondor bash -c '
   cd /etc/gondor
   mise install
@@ -164,7 +164,7 @@ is `gondor.<domain>` → `127.0.0.1:18790` (the dashboard) and
 
 ## Customizing the brand
 
-`brand/brand.css` is the only place to touch for visual tweaks. Hostops's
+`brand/brand.css` is the only place to touch for visual tweaks. Sysops's
 design tokens (`--bg-0`, `--info`, `--fg-1`, etc.) are defined upstream;
 redeclaring any of them in `brand.css` overrides the default.
 
@@ -199,7 +199,7 @@ file: `services/workflows/definitions/<type>.lua` (handler + activities
 
 - `meta`) and a sidebar entry in `extra_sidebar_links`.
 
-## Bumping the hostops version
+## Bumping the sysops version
 
 ```bash
 # Update the pin in Manifest.lua, then on each host:

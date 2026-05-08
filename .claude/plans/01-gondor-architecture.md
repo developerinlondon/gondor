@@ -6,9 +6,9 @@
 ## Purpose
 
 `gondor` is a host-ops application composed from
-[`assay-hostops`](https://github.com/developerinlondon/assay-hostops) with
+[`assay-sysops`](https://github.com/developerinlondon/assay-sysops) with
 application-specific branding, services, and pages. It is one of two known consumer
-applications of `assay-hostops` at this stage; `knowhere` is the other. They share no
+applications of `assay-sysops` at this stage; `knowhere` is the other. They share no
 code at the application level — the shared layer is upstream — and are maintained
 under separate ownership.
 
@@ -18,12 +18,12 @@ starts.
 ## Architectural shape
 
 Same as the consumer-app pattern locked in
-[`assay-hostops`'s architecture plan](https://github.com/developerinlondon/assay-hostops/blob/main/.claude/plans/01-assay-hostops-architecture.md):
+[`assay-sysops`'s architecture plan](https://github.com/developerinlondon/assay-sysops/blob/main/.claude/plans/01-assay-sysops-architecture.md):
 
 - Repo holds application-specific pieces only: `brand/`, `services/`, `pages/`,
   `templates/`, `static/`, `scripts/main.lua`, `deploy/<app>.service.example`.
 - The shared host-ops surface (containers, services, logs, tunnels, audit, metrics,
-  read-only backups) lives upstream in `assay-hostops`.
+  read-only backups) lives upstream in `assay-sysops`.
 - Runs as a systemd unit on a managed host alongside an `assay-engine` sidecar.
 - Mutations dispatch through `assay-engine` workflows scheduling `assay-ops.converge`
   activities (see

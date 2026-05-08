@@ -1,6 +1,6 @@
 /* Gondor brand overrides.
  *
- * Loaded last in hostops's layout.html so anything in here wins over
+ * Loaded last in sysops's layout.html so anything in here wins over
  * tokens.css + styles.css. Edit only the tokens that should differ
  * from upstream; everything else (fg tiers, semantic state colors,
  * radii) inherits.
@@ -26,7 +26,7 @@
   --info: #407040;
 }
 
-/* Brand mark — replace hostops's CSS-drawn diamond with the FCAR
+/* Brand mark — replace sysops's CSS-drawn diamond with the FCAR
  * logo. The pseudo-elements that drew the inner cutout + outer border
  * are display:none'd so only the bg image shows. */
 .brand-mark {

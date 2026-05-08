@@ -1,6 +1,6 @@
---! state.lua — host + container snapshot for hostops.
+--! state.lua — host + container snapshot for sysops.
 --!
---! Reads from the hostops lib's host/proc and nspawn/machines readers
+--! Reads from the sysops lib's host/proc and nspawn/machines readers
 --! and exposes the {host, machines} shape mount() expects. Held in
 --! memory; refreshed on demand by mount() callers.
 --!
@@ -8,8 +8,8 @@
 --! refresh loop (host fast, machines medium). Without start(), the
 --! state stays at boot snapshot — fine for first request.
 
-local proc     = require("hostops.services.host.proc")
-local machines = require("hostops.services.nspawn.machines")
+local proc     = require("sysops.services.host.proc")
+local machines = require("sysops.services.nspawn.machines")
 
 local M = {}
 

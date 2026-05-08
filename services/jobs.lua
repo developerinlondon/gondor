@@ -1,7 +1,7 @@
 --! jobs.lua — in-memory job tracker.
 --!
 --! Tracks long-running operations (machine provision, backups, etc.)
---! that hostops pages display. State is process-local; on restart all
+--! that sysops pages display. State is process-local; on restart all
 --! running jobs are forgotten — operators rely on the audit log for
 --! durable history.
 

@@ -7,8 +7,8 @@
 --!   GET  /api/skip-trace/new        — new-run modal
 --!   POST /skip-trace/run            — start a run, fires dashboard-refresh
 
-local hctx   = require("hostops.ctx")
-local render = require("hostops.pages.render")
+local hctx   = require("sysops.ctx")
+local render = require("sysops.pages.render")
 
 local brand   = require("services.brand")
 local client  = require("services.workflows.client")
@@ -205,6 +205,7 @@ function M.submit(req)
   local body = (req and req.body) or ""
   local name        = form_value(body, "name")
   local state_code  = form_value(body, "state")
+  local city        = form_value(body, "city")
   local case_number = form_value(body, "case_number")
 
   if not name or name == "" then
@@ -222,6 +223,7 @@ function M.submit(req)
     input = {
       name         = name,
       state        = state_code,
+      city         = city,
       case_number  = case_number,
       requested_by = actor,
     },

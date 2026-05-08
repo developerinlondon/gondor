@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"ssh -o ConnectTimeout=5 gondor 'hostname; echo \\\"---\\\"; which rustic; rustic --version 2>&1 | head -3; echo \\\"---\\\"; dpkg -l | grep -i rustic 2>/dev/null; snap list 2>/dev/null | grep -i r...",
+  "error": "Exit code 2\nfcar\n---\n/usr/local/bin/rustic\nrustic v0.11.2\n---\n/usr/local/bin/rustic\n\n/etc/rustic:\nenv",
+  "timestamp": "2026-05-05T14:44:03.386Z",
+  "retry_count": 1
+}
