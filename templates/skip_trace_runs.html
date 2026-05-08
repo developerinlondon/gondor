@@ -13,6 +13,7 @@
           <th onclick="sortPipelineRuns(this, 3)" data-sort="text" class="sortable">Requested by</th>
           <th onclick="sortPipelineRuns(this, 4)" data-sort="num" class="sortable">Started</th>
           <th onclick="sortPipelineRuns(this, 5)" data-sort="num" class="sortable">Duration</th>
+          <th>Result</th>
           <th>Progress</th>
           <th class="link-col">Link</th>
         </tr>
@@ -36,6 +37,17 @@
           </td>
           <td class="duration-cell" data-sort-value="{{ run.duration_ms | default(0) }}">
             {{ run.duration_label | default('-') }}
+          </td>
+          <td class="result-cell">
+            {% if run.found %}
+              {% if run.phone %}<span class="badge badge-success" title="{{ run.phone }}">📞 {{ run.phone }}</span>{% endif %}
+              {% if run.email %}<span class="badge badge-success" title="{{ run.email }}">✉ {{ run.email }}</span>{% endif %}
+              {% if run.address and not run.phone and not run.email %}<span class="badge badge-success" title="{{ run.address }}">🏠 {{ run.address }}</span>{% endif %}
+            {% elif run.status == "done" %}
+              <span class="badge badge-muted" title="No contact info from free sources (Tier 2 only)">no match</span>
+            {% else %}
+              <span class="meta">—</span>
+            {% endif %}
           </td>
           <td class="progress-cell">
             <div class="progress-text">{{ run.progress_label | default('-') }}</div>
@@ -64,8 +76,46 @@
         </tr>
         <tr id="run-{{ loop.index0 }}-{{ run.id }}" class="pipeline-history-detail"
             style="display:none">
-          <td colspan="8">
+          <td colspan="9">
             <div class="pipeline pipeline-expanded-run" data-run-id="expanded-{{ run.id }}">
+              {% if run.status == "done" %}
+              <div class="skip-trace-result-panel" style="padding:8px 0 12px 0;border-bottom:1px solid var(--border);margin-bottom:10px">
+                {% if run.found %}
+                <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+                  <div>
+                    <div class="meta">Phone</div>
+                    <div>{% if run.phones and run.phones | length > 0 %}
+                      {% for p in run.phones %}<div><code>{{ p }}</code></div>{% endfor %}
+                    {% else %}<span class="meta">—</span>{% endif %}</div>
+                  </div>
+                  <div>
+                    <div class="meta">Email</div>
+                    <div>{% if run.emails and run.emails | length > 0 %}
+                      {% for e in run.emails %}<div><code>{{ e }}</code></div>{% endfor %}
+                    {% else %}<span class="meta">—</span>{% endif %}</div>
+                  </div>
+                  <div>
+                    <div class="meta">Address</div>
+                    <div>{% if run.addresses and run.addresses | length > 0 %}
+                      {% for a in run.addresses %}<div>{{ a }}</div>{% endfor %}
+                    {% else %}<span class="meta">—</span>{% endif %}</div>
+                  </div>
+                  <div>
+                    <div class="meta">Sources hit</div>
+                    <div>{% if run.sources and run.sources | length > 0 %}
+                      {% for s in run.sources %}<span class="badge badge-info" style="margin-right:4px">{{ s }}</span>{% endfor %}
+                    {% else %}<span class="meta">—</span>{% endif %}</div>
+                  </div>
+                  <div>
+                    <div class="meta">Engine confidence</div>
+                    <div>{{ ((run.lookup_confidence | default(0)) * 100) | round(0) }}%</div>
+                  </div>
+                </div>
+                {% else %}
+                <div class="meta">No contact info returned from Tier-2 free sources for this subject. Sources tried (probably 403'd by anti-bot): TruePeopleSearch · FastPeopleSearch · Google · Whitepages · 411.com.</div>
+                {% endif %}
+              </div>
+              {% endif %}
               <div class="pipeline-steps">
                 {% for step in run.steps %}
                 <div class="pipeline-step step-{{ step.status }}"

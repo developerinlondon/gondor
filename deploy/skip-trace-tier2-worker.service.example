@@ -1,0 +1,26 @@
+[Unit]
+Description=gondor skip-trace tier-2 python worker
+After=network-online.target gondor-engine.service
+Wants=network-online.target
+Requires=gondor-engine.service
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/gondor/env
+Environment=ENGINE_URL=http://127.0.0.1:8082
+Environment=QUEUE=skip-trace-tier2
+Environment=WORKFLOW_NAMESPACE=main
+Environment=MAX_CONCURRENT=4
+
+WorkingDirectory=/opt/gondor/plugins/skip-trace-tier2
+ExecStart=/opt/gondor/plugins/skip-trace-tier2/.venv/bin/python /opt/gondor/plugins/skip-trace-tier2/worker.py
+Restart=on-failure
+RestartSec=2
+
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -205,6 +205,7 @@ function M.submit(req)
   local body = (req and req.body) or ""
   local name        = form_value(body, "name")
   local state_code  = form_value(body, "state")
+  local city        = form_value(body, "city")
   local case_number = form_value(body, "case_number")
 
   if not name or name == "" then
@@ -222,6 +223,7 @@ function M.submit(req)
     input = {
       name         = name,
       state        = state_code,
+      city         = city,
       case_number  = case_number,
       requested_by = actor,
     },
