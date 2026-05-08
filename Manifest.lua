@@ -13,7 +13,7 @@ return {
     {
       name = "sysops",
       version = "0.1.5",
-      sha256 = "a21f74a68d1eee059801aa8c89204d6e7b20a5f2c02691c74aba03a6a95e2856",
+      sha256 = "004fe37705e6a09a45d07470ad718126496a4182139b76500b6bc4daecc6c83e",
     },
   },
 }
