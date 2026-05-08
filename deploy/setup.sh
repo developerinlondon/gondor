@@ -13,7 +13,7 @@
 #   /etc/gondor-engine/engine.toml             engine config
 #   /var/lib/gondor                            app data (audit log)
 #   /var/lib/gondor-engine                     engine sqlite
-#   /opt/assay/libs/hostops                    upstream lib via assay install
+#   /opt/assay/libs/sysops                      upstream lib via assay install
 #   /etc/systemd/system/gondor*.service        systemd units
 #
 # Front the resulting :8080 (gondor) and :8082 (engine) with cloudflared
@@ -99,13 +99,13 @@ ENGINE_URL=http://127.0.0.1:8082
 # at 127.0.0.1:8082 for the "Open in engine ↗" buttons to actually work.
 # Override via env on first install (see header comment above).
 ENGINE_BASE_URL=${ENGINE_BASE_URL:-https://gondor-engine.fcar.ai}
-HOSTOPS_LIB_ROOT=/opt/assay/libs/hostops
+SYSOPS_LIB_ROOT=/opt/assay/libs/sysops
 GONDOR_ROOT=/etc/gondor
 BRAND_DIR=/etc/gondor/brand
 PORT=8080
 WORKFLOW_NAMESPACE=main
 AUDIT_PATH=/var/lib/gondor/audit.log
-LUA_PATH=/opt/assay/libs/?.lua;/opt/assay/libs/?/init.lua;/opt/assay/libs/hostops/?.lua;/etc/gondor/?.lua;/etc/gondor/?/init.lua;;
+LUA_PATH=/opt/assay/libs/?.lua;/opt/assay/libs/?/init.lua;/opt/assay/libs/sysops/?.lua;/etc/gondor/?.lua;/etc/gondor/?/init.lua;;
 ENVEOF
   echo "  wrote new /etc/gondor/env (with fresh admin key)"
 else
@@ -126,7 +126,7 @@ fi
 chown gondor:gondor /etc/gondor-engine/engine.toml
 
 # ── 7. assay install (libs) + flatten doubled-nest ────────────────────
-echo "[7/9] assay install (hostops + any other libs from Manifest.lua)"
+echo "[7/9] assay install (sysops + any other libs from Manifest.lua)"
 sudo -u gondor bash -c "
   set -euo pipefail
   cd /etc/gondor
