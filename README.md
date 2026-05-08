@@ -48,7 +48,7 @@ gondor/
 ├── tests-lua/
 │   ├── smoke.test.lua                # boots scripts/main.lua + curls routes
 │   └── dev-run.sh                    # convenience launcher for local dev
-├── Manifest.lua                      # pins sysops 0.1.3 for `assay install`
+├── Manifest.lua                      # pins sysops 0.1.5 for `assay install`
 └── VERSION                           # gondor's own semver pin
 ```
 

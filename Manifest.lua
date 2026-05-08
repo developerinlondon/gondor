@@ -12,8 +12,8 @@ return {
   libs = {
     {
       name = "sysops",
-      version = "0.1.3",
-      sha256 = "38cf5a88486d838e659374a2c6fb47f91a7a66014f75a549e3a4c84af248e15c",
+      version = "0.1.5",
+      sha256 = "a21f74a68d1eee059801aa8c89204d6e7b20a5f2c02691c74aba03a6a95e2856",
     },
   },
 }

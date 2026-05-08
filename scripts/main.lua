@@ -98,6 +98,12 @@ sysops.mount(routes, {
   lib_root            = LIB_ROOT,
   backup_profile_dir  = env.get("BACKUP_PROFILE_DIR"),
   engine_base_url     = engine_base_url,
+  -- Opt into the sysops 0.1.5 in-process Auth + Vault dashboards. The
+  -- pages render under /auth/* and /vault/* and proxy to the engine
+  -- sidecar above; the existing Engine sidebar link still ships for the
+  -- SPA path. See assay/.claude/plans/25-v0.1.5-sysops-auth-vault-pages.md.
+  active_modules      = { "auth", "vault" },
+  engine_admin_key    = env.get("GONDOR_ADMIN_API_KEYS") or env.get("ENGINE_ADMIN_KEY"),
   extra_sidebar_links = {
     {
       label = brand.snapshot().workflows_label,
