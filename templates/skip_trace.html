@@ -8,18 +8,6 @@
   <div class="page-actions" style="display:flex;gap:8px">
     <button class="btn btn-primary" hx-get="/api/skip-trace/new"
             hx-target="#workflow-dialog" hx-swap="innerHTML">+ New skip-trace</button>
-    {# Auth-gateway wired (engine_upstream_url set by sysops) → use the
-       same-origin proxy path. The session cookie applies automatically
-       and the SPA doesn't need the localStorage admin-token banner.
-       Falls back to cross-origin engine_base_url only when the gateway
-       isn't wired (legacy 0.1.x consumers). #}
-    {% if engine_upstream_url %}
-    <a class="btn btn-outline" href="/workflow/?type=fcar.skip-trace"
-       target="_self">Open in engine ↗</a>
-    {% elif engine_base_url %}
-    <a class="btn btn-outline" href="{{ engine_base_url }}/workflow/?type=fcar.skip-trace"
-       target="_blank" rel="noopener">Open in engine ↗</a>
-    {% endif %}
   </div>
 </header>
 
