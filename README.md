@@ -117,9 +117,11 @@ sudo chmod 600 /etc/gondor/env
 #                                Generate with `openssl rand -hex 32`.
 #      ENGINE_URL             — http://127.0.0.1:8082 for same-host deploys.
 #      ENGINE_BASE_URL        — public hostname behind cloudflared/Traefik
-#                                (https://gondor-engine.<domain>). Drives the
-#                                "Open in engine ↗" links on each workflow page.
-#                                Leave empty if no public engine surface.
+#                                (https://gondor-engine.<domain>). Set for
+#                                legacy 0.1.x consumers; the auth gateway
+#                                proxies engine URLs same-origin so the
+#                                public engine surface only needs to be
+#                                directly reachable for non-gateway deploys.
 #      GITHUB_TOKEN           — only needed if your skip-trace flows hit github.
 sudoedit /etc/gondor/env
 
@@ -150,7 +152,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now gondor-engine gondor
 
 # 7) Verify the install. healthz should return 200, the sidebar should
-#    render with the FCAR workflows group + Skip trace child.
+#    render with the FCAR Pipelines group + Skip trace child.
 curl -s http://127.0.0.1:18790/healthz                          # → "ok"
 curl -s http://127.0.0.1:18790/skip-trace | grep -q "FCAR" && echo "sidebar OK"
 systemctl status gondor gondor-engine --no-pager
@@ -158,9 +160,11 @@ systemctl status gondor gondor-engine --no-pager
 
 If the public hostname is fronted by cloudflared/Traefik, the typical mapping
 is `gondor.<domain>` → `127.0.0.1:18790` (the dashboard) and
-`gondor-engine.<domain>` → `127.0.0.1:8082` (the engine SPA). Set
-`ENGINE_BASE_URL=https://gondor-engine.<domain>` in `/etc/gondor/env` so the
-"Open in engine ↗" links on the workflow pages point at the right place.
+`gondor-engine.<domain>` → `127.0.0.1:8082` (the engine SPA). With the auth
+gateway wired (the default), the engine SPA is proxied same-origin via
+`gondor.<domain>/engine/console` and `gondor.<domain>/workflow/*`; the
+cross-origin `gondor-engine.<domain>` hostname is only needed for legacy
+0.1.x non-gateway consumers.
 
 ## Customizing the brand
 
@@ -176,7 +180,7 @@ redeclaring any of them in `brand.css` overrides the default.
 - `accent_hex` — overrides `--info` at runtime; redundant with `brand.css`
   but useful for dynamic per-tenant tweaks.
 - `workflows_label` — sidebar group label that wraps the workflow children
-  (default `"Workflows"`; FCAR's brand sets it to `"FCAR workflows"`).
+  (default `"Workflows"`; FCAR's brand sets it to `"FCAR Pipelines"`).
 
 ## The skip-trace workflow
 

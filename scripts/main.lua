@@ -16,7 +16,10 @@ local audit      = require("services.audit")
 local jobs       = require("services.jobs")
 local secret     = require("services.secret_store")
 local brand      = require("services.brand")
-local engine     = require("services.engine_client").new(env.get("ENGINE_URL"))
+local engine     = require("services.engine_client").new(
+  env.get("ENGINE_URL"),
+  env.get("GONDOR_ADMIN_API_KEYS")
+)
 local skip_trace = require("pages.skip_trace")
 
 local workflow_client   = require("services.workflows.client")
@@ -87,7 +90,7 @@ state.start()
 
 local routes = { GET = {}, POST = {} }
 
-sysops.mount(routes, {
+local mount_opts = {
   prefix              = "/",
   state               = state,
   audit               = audit,
@@ -112,14 +115,56 @@ sysops.mount(routes, {
       },
     },
   },
-})
+}
+
+-- Opt into the sysops 0.2.0 auth gateway when AUTH_ISSUER is set. Sysops
+-- becomes the OIDC RP, holds the engine admin bearer server-side, and
+-- proxies dashboard SPA + /api/v1/engine/* to gondor-engine. The engine
+-- itself stays unchanged (admin-bearer-only at its boundary).
+--
+-- Production wiring:
+--   AUTH_ISSUER        = https://gondor-engine.agenteda.com/auth
+--   AUTH_REDIRECT_URI  = https://gondor.agenteda.com/auth/callback
+--   ENGINE_URL         = http://127.0.0.1:8082  (private sidecar)
+--   GONDOR_ADMIN_API_KEYS — shared with the engine's admin_api_keys
+--   SYSOPS_SESSION_KEY — ≥32 random bytes, openssl rand -hex 32
+local auth_issuer = env.get("AUTH_ISSUER")
+if auth_issuer and auth_issuer ~= "" then
+  mount_opts.oidc = {
+    issuer        = auth_issuer,
+    client_id     = env.get("AUTH_CLIENT_ID") or "gondor-dashboard",
+    redirect_uri  = env.get("AUTH_REDIRECT_URI"),
+    scopes        = { "openid", "email", "profile" },
+  }
+  mount_opts.session = {
+    signing_key = env.get("SYSOPS_SESSION_KEY"),
+    ttl_seconds = tonumber(env.get("AUTH_SESSION_TTL") or "86400"),
+    cookie_name = "gondor_session",
+  }
+  mount_opts.gateway = {
+    engine_upstream = env.get("ENGINE_URL") or "http://127.0.0.1:8082",
+    admin_bearer   = env.get("GONDOR_ADMIN_API_KEYS"),
+  }
+  mount_opts.authz = {
+    require_zanzibar_admin = false, -- flip on once zanzibar tuples seeded
+    bootstrap_first_admin  = true,  -- first OIDC login → engine:core#admin
+  }
+end
+
+sysops.mount(routes, mount_opts)
+
+-- Gondor-specific pages — gated by the sysops auth gateway when wired
+-- (require_session is a no-op pass-through when ctx.session_signer is nil,
+-- so this is safe for non-OIDC deployments too).
+local require_session = require("sysops.middleware.require_session")
+local function gated(handler) return require_session.wrap(handler) end
 
 -- Skip-trace runs UI: page shell + HTMX fragments + submit.
-routes.GET["/skip-trace"]              = skip_trace.page
-routes.GET["/api/skip-trace/active"]   = skip_trace.active_fragment
-routes.GET["/api/skip-trace/runs"]     = skip_trace.runs_fragment
-routes.GET["/api/skip-trace/new"]      = skip_trace.new_fragment
-routes.POST["/skip-trace/run"]         = skip_trace.submit
+routes.GET["/skip-trace"]              = gated(skip_trace.page)
+routes.GET["/api/skip-trace/active"]   = gated(skip_trace.active_fragment)
+routes.GET["/api/skip-trace/runs"]     = gated(skip_trace.runs_fragment)
+routes.GET["/api/skip-trace/new"]      = gated(skip_trace.new_fragment)
+routes.POST["/skip-trace/run"]         = gated(skip_trace.submit)
 
 routes.GET["/healthz"]                 = function() return { status = 200, body = "ok" } end
 
@@ -138,7 +183,7 @@ routes.GET["/brand/engine.css"]        = brand_file("engine.css", "text/css", 60
 -- SSE event stream — emits a "refresh" event each time state_revision
 -- changes. Clients sleep+poll the local counter so the read path stays
 -- off the engine for steady-state.
-routes.GET["/api/events"] = function(_req)
+routes.GET["/api/events"] = gated(function(_req)
   return {
     status  = 200,
     headers = { ["Content-Type"] = "text/event-stream",
@@ -155,7 +200,7 @@ routes.GET["/api/events"] = function(_req)
       end
     end,
   }
-end
+end)
 
 -- Workflow client wiring + history rehydrate. Async + pcall'd so the
 -- dashboard still boots if the engine is unreachable; the new-run
@@ -174,6 +219,12 @@ async.spawn(function()
     log.error("workflow worker stopped: " .. tostring(err))
   end
 end)
+
+if auth_issuer and auth_issuer ~= "" then
+  log.info(("sysops auth gateway enabled: issuer=%s client_id=%s redirect_uri=%s")
+    :format(auth_issuer, env.get("AUTH_CLIENT_ID") or "gondor-dashboard",
+            env.get("AUTH_REDIRECT_URI") or "<unset>"))
+end
 
 log.info(("gondor booting on :%d (lib_root=%s, engine=%s)")
   :format(PORT, LIB_ROOT, env.get("ENGINE_URL") or "<unset>"))

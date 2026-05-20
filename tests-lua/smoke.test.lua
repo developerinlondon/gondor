@@ -91,7 +91,6 @@ do
   assert_contains(r.body, 'id="workflow-dialog"',     "modal slot")
   assert_contains(r.body, 'id="skip-trace-active-slot"', "active section slot")
   assert_contains(r.body, 'id="skip-trace-runs-slot"',   "recent section slot")
-  assert_contains(r.body, "Open in engine",           "engine link")
   -- The old inline result panel must NOT be rendered any more.
   if r.body:find("Probable record", 1, true) then
     fail("skip-trace still renders the old inline result panel")

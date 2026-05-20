@@ -15,7 +15,6 @@
           <th onclick="sortPipelineRuns(this, 5)" data-sort="num" class="sortable">Duration</th>
           <th>Result</th>
           <th>Progress</th>
-          <th class="link-col">Link</th>
         </tr>
       </thead>
       <tbody>
@@ -59,24 +58,10 @@
                    style="width: {{ run.progress_pct | default(0) }}%"></div>
             </div>
           </td>
-          <td class="link-cell" onclick="event.stopPropagation()">
-            {% if engine_base_url %}
-            <a href="{{ engine_base_url }}/workflow/#ns=main&wf={{ run.id }}"
-               target="_blank" rel="noopener" class="run-link" title="Open in engine">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2"
-                   stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-            </a>
-            {% endif %}
-          </td>
         </tr>
         <tr id="run-{{ loop.index0 }}-{{ run.id }}" class="pipeline-history-detail"
             style="display:none">
-          <td colspan="9">
+          <td colspan="8">
             <div class="pipeline pipeline-expanded-run" data-run-id="expanded-{{ run.id }}">
               {% if run.status == "done" %}
               <div class="skip-trace-result-panel" style="padding:8px 0 12px 0;border-bottom:1px solid var(--border);margin-bottom:10px">

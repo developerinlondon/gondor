@@ -4,5 +4,5 @@
   "title": "Gondor",
   "favicon_url": "/static/img/favicon.svg",
   "accent_hex": "#407040",
-  "workflows_label": "FCAR workflows"
+  "workflows_label": "FCAR Pipelines"
 }
