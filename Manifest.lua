@@ -12,8 +12,11 @@ return {
   libs = {
     {
       name = "sysops",
-      version = "0.1.5",
-      sha256 = "a21f74a68d1eee059801aa8c89204d6e7b20a5f2c02691c74aba03a6a95e2856",
+      version = "0.2.0",
+      -- TBD: assay-lib-sysops-v0.2.0 hasn't been released yet. Fill in
+      -- the sha256 of assay-lib-sysops-0.2.0.tar.gz once the Release
+      -- libs workflow publishes the tag.
+      sha256 = "TBD-sysops-0.2.0",
     },
   },
 }

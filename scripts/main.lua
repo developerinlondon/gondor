@@ -16,7 +16,10 @@ local audit      = require("services.audit")
 local jobs       = require("services.jobs")
 local secret     = require("services.secret_store")
 local brand      = require("services.brand")
-local engine     = require("services.engine_client").new(env.get("ENGINE_URL"))
+local engine     = require("services.engine_client").new(
+  env.get("ENGINE_URL"),
+  env.get("GONDOR_ADMIN_API_KEYS")
+)
 local skip_trace = require("pages.skip_trace")
 
 local workflow_client   = require("services.workflows.client")
@@ -87,7 +90,7 @@ state.start()
 
 local routes = { GET = {}, POST = {} }
 
-sysops.mount(routes, {
+local mount_opts = {
   prefix              = "/",
   state               = state,
   audit               = audit,
@@ -112,14 +115,56 @@ sysops.mount(routes, {
       },
     },
   },
-})
+}
+
+-- Opt into the sysops 0.2.0 auth gateway when AUTH_ISSUER is set. Sysops
+-- becomes the OIDC RP, holds the engine admin bearer server-side, and
+-- proxies dashboard SPA + /api/v1/engine/* to gondor-engine. The engine
+-- itself stays unchanged (admin-bearer-only at its boundary).
+--
+-- Production wiring:
+--   AUTH_ISSUER        = https://gondor-engine.agenteda.com/auth
+--   AUTH_REDIRECT_URI  = https://gondor.agenteda.com/auth/callback
+--   ENGINE_URL         = http://127.0.0.1:8082  (private sidecar)
+--   GONDOR_ADMIN_API_KEYS — shared with the engine's admin_api_keys
+--   SYSOPS_SESSION_KEY — ≥32 random bytes, openssl rand -hex 32
+local auth_issuer = env.get("AUTH_ISSUER")
+if auth_issuer and auth_issuer ~= "" then
+  mount_opts.oidc = {
+    issuer        = auth_issuer,
+    client_id     = env.get("AUTH_CLIENT_ID") or "gondor-dashboard",
+    redirect_uri  = env.get("AUTH_REDIRECT_URI"),
+    scopes        = { "openid", "email", "profile" },
+  }
+  mount_opts.session = {
+    signing_key = env.get("SYSOPS_SESSION_KEY"),
+    ttl_seconds = tonumber(env.get("AUTH_SESSION_TTL") or "86400"),
+    cookie_name = "gondor_session",
+  }
+  mount_opts.gateway = {
+    engine_upstream = env.get("ENGINE_URL") or "http://127.0.0.1:8082",
+    admin_bearer   = env.get("GONDOR_ADMIN_API_KEYS"),
+  }
+  mount_opts.authz = {
+    require_zanzibar_admin = false, -- flip on once zanzibar tuples seeded
+    bootstrap_first_admin  = true,  -- first OIDC login → engine:core#admin
+  }
+end
+
+sysops.mount(routes, mount_opts)
+
+-- Gondor-specific pages — gated by the sysops auth gateway when wired
+-- (require_session is a no-op pass-through when ctx.session_signer is nil,
+-- so this is safe for non-OIDC deployments too).
+local require_session = require("sysops.middleware.require_session")
+local function gated(handler) return require_session.wrap(handler) end
 
 -- Skip-trace runs UI: page shell + HTMX fragments + submit.
-routes.GET["/skip-trace"]              = skip_trace.page
-routes.GET["/api/skip-trace/active"]   = skip_trace.active_fragment
-routes.GET["/api/skip-trace/runs"]     = skip_trace.runs_fragment
-routes.GET["/api/skip-trace/new"]      = skip_trace.new_fragment
-routes.POST["/skip-trace/run"]         = skip_trace.submit
+routes.GET["/skip-trace"]              = gated(skip_trace.page)
+routes.GET["/api/skip-trace/active"]   = gated(skip_trace.active_fragment)
+routes.GET["/api/skip-trace/runs"]     = gated(skip_trace.runs_fragment)
+routes.GET["/api/skip-trace/new"]      = gated(skip_trace.new_fragment)
+routes.POST["/skip-trace/run"]         = gated(skip_trace.submit)
 
 routes.GET["/healthz"]                 = function() return { status = 200, body = "ok" } end
 
@@ -138,7 +183,7 @@ routes.GET["/brand/engine.css"]        = brand_file("engine.css", "text/css", 60
 -- SSE event stream — emits a "refresh" event each time state_revision
 -- changes. Clients sleep+poll the local counter so the read path stays
 -- off the engine for steady-state.
-routes.GET["/api/events"] = function(_req)
+routes.GET["/api/events"] = gated(function(_req)
   return {
     status  = 200,
     headers = { ["Content-Type"] = "text/event-stream",
@@ -155,7 +200,7 @@ routes.GET["/api/events"] = function(_req)
       end
     end,
   }
-end
+end)
 
 -- Workflow client wiring + history rehydrate. Async + pcall'd so the
 -- dashboard still boots if the engine is unreachable; the new-run
@@ -175,144 +220,8 @@ async.spawn(function()
   end
 end)
 
--- ============================================================================
--- OIDC RP — Google login via assay-auth on the engine sidecar.
---
--- Opt-in via AUTH_ISSUER. When set, the dashboard becomes a real OIDC
--- relying party against the issuer (PKCE public client, no shared
--- secret) and gates every page except /login, /auth/callback, /logout,
--- /healthz, /static/* and /brand/* behind a server-side session cookie.
--- ============================================================================
-local auth_issuer = env.get("AUTH_ISSUER")
 if auth_issuer and auth_issuer ~= "" then
-  local oidc = require("services.oidc_client").new({
-    issuer       = auth_issuer,
-    client_id    = env.get("AUTH_CLIENT_ID") or "gondor-dashboard",
-    redirect_uri = env.get("AUTH_REDIRECT_URI"),
-    scopes       = { "openid", "email", "profile" },
-    session_ttl  = tonumber(env.get("AUTH_SESSION_TTL") or "86400"),
-  })
-
-  local secure_cookie = (auth_issuer:sub(1, 8) == "https://")
-
-  local function get_header(req, name)
-    local h = req and req.headers or {}
-    return h[name] or h[name:lower()]
-  end
-
-  local function parse_cookie(req, name)
-    local raw = get_header(req, "Cookie") or ""
-    for part in raw:gmatch("[^;]+") do
-      local k, v = part:match("^%s*([^=]+)=(.*)$")
-      if k == name then return v end
-    end
-  end
-
-  local function build_cookie(name, value, opts)
-    local parts = { name .. "=" .. value }
-    parts[#parts + 1] = "Path=" .. (opts.path or "/")
-    parts[#parts + 1] = "HttpOnly"
-    parts[#parts + 1] = "SameSite=Lax"
-    if opts.max_age then parts[#parts + 1] = "Max-Age=" .. tostring(opts.max_age) end
-    if opts.secure then parts[#parts + 1] = "Secure" end
-    return table.concat(parts, "; ")
-  end
-
-  local function urlenc(s)
-    return (tostring(s or "")):gsub("([^A-Za-z0-9%-_%.~])", function(c)
-      return string.format("%%%02X", string.byte(c))
-    end)
-  end
-
-  local SESSION_COOKIE = "gondor_session"
-  local STATE_COOKIE   = "gondor_oidc_state"
-
-  local public_paths = {
-    ["/login"]          = true,
-    ["/auth/callback"]  = true,
-    ["/logout"]         = true,
-    ["/healthz"]        = true,
-    ["/favicon.ico"]    = true,
-  }
-  local function is_public(path)
-    if public_paths[path] then return true end
-    if path:match("^/static/") then return true end
-    if path:match("^/brand/") then return true end
-    return false
-  end
-
-  -- Wrap every currently-registered route except the public allowlist.
-  -- Done BEFORE we add /login etc. so the new routes stay unwrapped.
-  for _, method in ipairs({ "GET", "POST", "PUT", "DELETE" }) do
-    local tbl = routes[method]
-    if tbl then
-      for path, handler in pairs(tbl) do
-        if not is_public(path) then
-          tbl[path] = function(req)
-            local sid = parse_cookie(req, SESSION_COOKIE)
-            local sess = sid and oidc.session(sid) or nil
-            if not sess then
-              return {
-                status  = 302,
-                headers = { Location = "/login?return_to=" .. urlenc(req and req.path or "/") },
-              }
-            end
-            req.user = { id = sess.user_id, email = sess.email, name = sess.display_name }
-            return handler(req)
-          end
-        end
-      end
-    end
-  end
-
-  routes.GET["/login"] = function(req)
-    local return_to = (req and req.params and req.params.return_to) or "/"
-    local started = oidc.start(return_to)
-    return {
-      status  = 302,
-      headers = {
-        Location       = started.redirect_url,
-        ["Set-Cookie"] = build_cookie(STATE_COOKIE, started.state, {
-          path = "/auth", max_age = 600, secure = secure_cookie,
-        }),
-      },
-    }
-  end
-
-  routes.GET["/auth/callback"] = function(req)
-    local state = parse_cookie(req, STATE_COOKIE)
-    local res, err = oidc.complete((req and req.params) or {}, state)
-    if not res then
-      return {
-        status  = 400,
-        headers = { ["Content-Type"] = "text/plain; charset=utf-8" },
-        body    = "auth callback failed: " .. tostring(err),
-      }
-    end
-    return {
-      status  = 302,
-      headers = {
-        Location       = res.return_to,
-        ["Set-Cookie"] = build_cookie(SESSION_COOKIE, res.session_id, {
-          path = "/", max_age = 86400, secure = secure_cookie,
-        }),
-      },
-    }
-  end
-
-  routes.GET["/logout"] = function(req)
-    local sid = parse_cookie(req, SESSION_COOKIE)
-    local res = oidc.logout(sid, (req and req.params and req.params.return_to) or "/")
-    return {
-      status  = 302,
-      headers = {
-        Location       = res.redirect_url,
-        ["Set-Cookie"] = SESSION_COOKIE .. "=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
-      },
-    }
-  end
-
-  log.info(("oidc rp enabled: issuer=%s client_id=%s redirect_uri=%s")
+  log.info(("sysops auth gateway enabled: issuer=%s client_id=%s redirect_uri=%s")
     :format(auth_issuer, env.get("AUTH_CLIENT_ID") or "gondor-dashboard",
             env.get("AUTH_REDIRECT_URI") or "<unset>"))
 end
